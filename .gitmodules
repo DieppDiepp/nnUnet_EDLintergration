@@ -1,3 +1,3 @@
 [submodule "nnUNet"]
 	path = nnUNet
-	url = https://github.com/MONAI/nnUNet
+	url = https://github.com/MIC-DKFZ/nnUNet

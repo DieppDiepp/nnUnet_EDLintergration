@@ -1,0 +1,7 @@
+venv310/
+nnUNET_raw/
+nnUNET_preprocessed/
+BraTS2020_EDL_Model_Fold0/
+nnUNET_preprocessed.zip
+nnUNET_raw.zip
+nnUNet.zip

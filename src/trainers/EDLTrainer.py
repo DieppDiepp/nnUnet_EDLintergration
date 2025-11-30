@@ -11,7 +11,7 @@ class EDLLoss(nn.Module):
     def __init__(self, num_classes, annealing_step=10, lamb=1.0):
         super(EDLLoss, self).__init__()
         self.num_classes = num_classes
-        self.annealing_step = annealing_step
+        self.annealing_step = annealing_step # annealing_step=10: Đây là tham số "ủ nhiệt". Trong 10 epoch đầu tiên, ta sẽ không phạt nặng model về độ bất định (KL Divergence). Lý do là lúc đầu model chưa học được gì, nếu ép nó phải "biết mình không biết" ngay thì nó sẽ bị rối và không học được các đặc trưng ảnh
         self.lamb = lamb
         
         # Biến này sẽ được update từ Trainer mỗi epoch

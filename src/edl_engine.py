@@ -215,7 +215,7 @@ class EDLInferenceEngine:
                 # Các file cơ bản (Luôn lưu)
                 self.save_nifti(segmentation, original_affine, os.path.join(out_dir, "prediction.nii.gz"))
                 self.save_nifti(seg[0], original_affine, os.path.join(out_dir, "ground_truth.nii.gz"))
-                # self.save_nifti(data[0], original_affine, os.path.join(out_dir, "mri_crop.nii.gz"))
+                self.save_nifti(data[0], original_affine, os.path.join(out_dir, "mri_crop.nii.gz"))
                 
             except Exception as e:
                 print(f"⚠️ Error saving NIfTI files for {case_id}: {e}")

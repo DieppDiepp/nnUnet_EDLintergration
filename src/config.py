@@ -37,6 +37,21 @@ BASE_CONFIG = {
     # [Start, End]: 1.0 là giữ 100%, 0.05 là giữ 5%
     "ause_retention_range": [1.0, 0.5], 
     "ause_steps": 20, # Độ mịn của biểu đồ (tính toán tại 20 điểm mốc).
+
+# --- [NEW] CẤU HÌNH THÍ NGHIỆM STRESS TEST ---
+    "noise_temp_dir": "/content/temp_noise_experiment",
+    
+    "noise_experiment_config": {
+        # Chọn 1 trong 3 loại để chạy: "Gaussian Noise", "Gaussian Blur", "Motion Ghost"
+        "active_type": "Gaussian Blur", 
+        
+        # Định nghĩa các mức độ cho từng loại
+        "settings": {
+            "Gaussian Noise": [0.0, 50.0, 100.0, 200.0], # Sigma (Nhiễu hạt)
+            "Gaussian Blur":  [0.0, 0.5, 1.0, 1.5],      # Sigma (Làm mờ - Sát thủ Dice)
+            "Motion Ghost":   [0, 2, 3, 4]               # Số lượng bóng ma (Ảo ảnh)
+        }
+    }
 }
 
 # 2. CẤU HÌNH RIÊNG (SPECIFIC PATHS)

@@ -26,3 +26,10 @@ def get_binary_mask(data, target_class):
         return (data == 3)
     # Mặc định WT
     return (data > 0)
+
+def compute_dice_score_binary(pred_bin, gt_bin):
+    """Tính Dice Score trên 2 mask nhị phân."""
+    intersection = np.logical_and(pred_bin, gt_bin).sum()
+    sum_areas = pred_bin.sum() + gt_bin.sum()
+    if sum_areas == 0: return 1.0
+    return (2.0 * intersection) / sum_areas

@@ -118,9 +118,24 @@ class EDLInferenceEngine:
             print(f"❌ Error: Input files for {case_id} not found.")
             return None, None, None, None, None
 
-        gt_file = os.path.join(lbl_folder, f"{case_id}{ext}")
-        if not os.path.exists(gt_file): 
-            gt_file = None # Chấp nhận chạy inference kể cả khi không có nhãn (GT)
+        # [FIX] Tìm file GT thông minh
+        gt_file = None
+        gt_path_gz = os.path.join(lbl_folder, f"{case_id}.nii.gz")
+        gt_path_nii = os.path.join(lbl_folder, f"{case_id}.nii")
+        
+        # --- THÊM ĐOẠN DEBUG NÀY ---
+        print(f"🔍 DEBUG: Đang tìm GT cho {case_id}...")
+        print(f"   - Thử: {gt_path_gz} -> {'CÓ' if os.path.exists(gt_path_gz) else 'KHÔNG'}")
+        print(f"   - Thử: {gt_path_nii} -> {'CÓ' if os.path.exists(gt_path_nii) else 'KHÔNG'}")
+        # ---------------------------
+
+        if os.path.exists(gt_path_gz):
+            gt_file = gt_path_gz
+        elif os.path.exists(gt_path_nii):
+            gt_file = gt_path_nii
+        else:
+            print(f"⚠️ WARNING: Không tìm thấy GT! Code sẽ chạy với GT đen sì.")
+            gt_file = None
 
         # --- LẤY AFFINE MATRIX GỐC ---
         # Để đảm bảo file output chồng khít lên ảnh gốc trong ITK-SNAP

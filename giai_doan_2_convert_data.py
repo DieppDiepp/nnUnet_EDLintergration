@@ -1,3 +1,11 @@
+# File này chỉ cần chạy local - bằng CPU
+# Mục đích: Chuyển đổi dữ liệu BraTS 2020 sang định dạng nnU-Net yêu cầu
+# Đồng thời sửa lỗi nhãn (remap label) từ 4 lớp về 3 lớp như sau:
+# - Lớp 0: Background
+# - Lớp 1: NCR/NET (Non-Enhancing Tumor + Necrotic Core)
+# - Lớp 2: ED (Edema)
+# - Lớp 3: ET (Enhancing Tumor) [Gồm cả lớp 4 cũ được remap về đây]
+
 import os
 import json
 import glob
@@ -6,8 +14,8 @@ import re
 import shutil
 import time
 import numpy as np
-import nibabel as nib # <-- THEM THU VIEN MOI
-import sys # Them de kiem tra loi
+import nibabel as nib
+import sys
 
 print("--- GIAI DOAN 2 (FIX 12 - REMAP LABEL): BAT DAU CHUYEN DOI DU LIEU ---")
 start_time = time.time()

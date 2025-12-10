@@ -51,6 +51,24 @@ BASE_CONFIG = {
             "Gaussian Blur":  [0.0, 0.5, 1.0, 1.5],      # Sigma (Làm mờ - Sát thủ Dice)
             "Motion Ghost":   [0, 2, 3, 4]               # Số lượng bóng ma (Ảo ảnh)
         }
+    },
+
+    # --- CẤU HÌNH THÍ NGHIỆM OOD (MỚI) ---
+    "ood_temp_dir": "/content/temp_ood_experiment",
+    
+    "ood_experiment_config": {
+        # Chỉ tập trung chạy Artifact để test Slide 27
+        "active_type": "Artificial Artifact", 
+        
+        "settings": {
+            # 1. Dị vật (Giả lập khối u lạ hoặc kim loại - Focus here)
+            # Bạn có thể test Box_White (giống Slide 27 nhất) trước
+            "Artificial Artifact": ["Box_White", "Box_Grey", "Sphere_White"],
+            
+            # Tạm thời comment các phần khác để code gọn nhẹ
+            # "Structural Mutation": ["Flip_Horizontal", "Flip_Vertical"],
+            # "Intensity Shift": [0.1, 0.5, 2.0, 5.0] 
+        }
     }
 }
 

@@ -69,7 +69,7 @@ def run_analysis_pipeline(mode='edl', n_cases=None):
     TARGET_CLASSES = ["WT", "TC", "ET"]
     
     # Định nghĩa các ngưỡng Threshold (0-100)
-    THRESHOLDS = np.arange(100, -1, -5) # 100, 95, ..., 0
+    THRESHOLDS = np.arange(100, -1, -1) # 100, 95, ..., 0
 
     # 2. Main Loop
     for target in TARGET_CLASSES:

@@ -1,7 +1,11 @@
 venv310/
-nnUNET_raw/
-nnUNET_preprocessed/
+/nnUNET_raw/
+/nnUNET_preprocessed/
 BraTS2020_EDL_Model_Fold0/
+inference_results_baseline/
 nnUNET_preprocessed.zip
 nnUNET_raw.zip
 nnUNet.zip
+inference_results_baseline.zip
+test/
+old/

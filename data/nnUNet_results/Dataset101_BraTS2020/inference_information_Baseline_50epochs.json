@@ -1,0 +1,34 @@
+{
+    "all_results": {
+        "nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres": 0.7566505837540124
+    },
+    "best_model_or_ensemble": {
+        "postprocessing_file": "/content/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres/crossval_results_folds_0_1_2_3_4/postprocessing.pkl",
+        "result_on_crossval_post_pp": 0.7566505837540124,
+        "result_on_crossval_pre_pp": 0.7566505837540124,
+        "selected_model_or_models": [
+            {
+                "configuration": "3d_fullres",
+                "plans_identifier": "nnUNetPlans",
+                "trainer": "nnUNetTrainer_50epochs"
+            }
+        ],
+        "some_plans_file": "/content/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres/crossval_results_folds_0_1_2_3_4/plans.json"
+    },
+    "considered_models": [
+        {
+            "configuration": "3d_fullres",
+            "plans": "nnUNetPlans",
+            "trainer": "nnUNetTrainer_50epochs"
+        }
+    ],
+    "dataset_name_or_id": "Dataset101_BraTS2020",
+    "ensembling_allowed": true,
+    "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+    ]
+}

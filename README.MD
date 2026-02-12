@@ -1,9 +1,3 @@
-Dưới đây là bản nháp `README.md` tổng quan cho repository của bạn, tập trung vào phương pháp luận và kết quả nghiên cứu dựa trên báo cáo đồ án và context thực nghiệm chúng ta đã trao đổi.
-
-Nội dung được viết bằng tiếng Việt, văn phong học thuật, lược bỏ các chi tiết triển khai hạ tầng (Colab, Drive, I/O) để tập trung vào đóng góp kỹ thuật chính.
-
----
-
 # Phân rã độ bất định bảo toàn độ chính xác cho phân đoạn khối u não với Evidential nnU-Net
 
 Repository này chứa mã nguồn và tài liệu thực nghiệm cho phương pháp tích hợp **Evidential Deep Learning (EDL)** vào khung làm việc **nnU-Net v2** nhằm giải quyết bài toán phân đoạn khối u não đa phương thức trên tập dữ liệu **BraTS 2020**.

@@ -65,31 +65,37 @@ def calculate_dice_2d(pred_slice, gt_slice):
 
 def calculate_metric_binary(pred_mask, gt_mask, spacing):
     """
-    Hàm phụ trợ cốt lõi: Tính Dice & HD95 cho 1 cặp mask nhị phân.
-    Xử lý triệt để các trường hợp ngoại lệ (mask rỗng, thiếu thư viện).
+    Hàm tính Dice & HD95 cho 1 cặp mặt nạ trắng đen.
+    Đã cập nhật chuẩn luật chấm điểm của BraTS (phạt 373.13mm nếu sai lệch hoàn toàn).
     """
-    # 1. Dice Score
+    sum_pred = pred_mask.sum()
+    sum_gt = gt_mask.sum()
+
+    # --- 1. XỬ LÝ CÁC TRƯỜNG HỢP RỖNG (QUAN TRỌNG) ---
+    if sum_pred == 0 and sum_gt == 0:
+        # Cả đáp án và dự đoán đều không có vùng này -> Trùng khớp 100%
+        return 1.0, 0.0
+
+    if sum_pred == 0 or sum_gt == 0:
+        # 1 bên có, 1 bên không -> Đoán sai hoàn toàn
+        # Điểm Dice = 0, Điểm HD95 bị phạt mức tối đa (đường chéo hộp sọ)
+        return 0.0, 373.13
+
+    # --- 2. TÍNH TOÁN BÌNH THƯỜNG (KHI CẢ 2 ĐỀU CÓ DỮ LIỆU) ---
+    # Tính Dice
     intersection = np.logical_and(pred_mask, gt_mask).sum()
-    sum_areas = pred_mask.sum() + gt_mask.sum()
+    dice = (2.0 * intersection) / (sum_pred + sum_gt)
     
-    if sum_areas == 0:
-        dice = 1.0 # Cả 2 đều trống -> Đúng tuyệt đối
-    else:
-        dice = (2.0 * intersection) / sum_areas
-        
-    # 2. HD95 (Hausdorff Distance 95%)
+    # Tính HD95
     if hd95 is None:
-        hd_val = np.nan # Chưa cài medpy
-    elif pred_mask.sum() == 0 or gt_mask.sum() == 0:
-        # Nếu 1 trong 2 mask rỗng thì khoảng cách là vô tận (hoặc không xác định)
-        # Để an toàn cho tính toán trung bình, ta gán NaN hoặc 1 giá trị phạt lớn (tùy chọn)
-        hd_val = np.nan 
+        hd_val = np.nan # Chưa cài thư viện medpy
     else:
         try:
-            # voxelspacing=None nghĩa là tính theo pixel, có spacing thì ra mm
+            # voxelspacing giúp đổi từ đơn vị pixel sang mm (rất quan trọng)
             hd_val = hd95(pred_mask, gt_mask, voxelspacing=spacing)
-        except Exception:
-            hd_val = np.nan # Lỗi tính toán hình học
+        except Exception as e:
+            print(f"Lỗi tính HD95: {e}")
+            hd_val = np.nan
             
     return dice, hd_val
 

@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import argparse
 
-sys.path.append("/content/drive/MyDrive/XUM_project")
+sys.path.append("/content/drive/MyDrive/NCKH/nnUnet")
 
 from src.config import BASE_CONFIG, MODEL_CONFIGS
 from src.utils import get_case_list, get_validation_cases, calculate_metric_per_class
@@ -17,10 +17,15 @@ from src.edl_engine import EDLInferenceEngine
 from src.visualizer import visualize_comparison 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run Inference for BraTS EDL/Baseline")
-    parser.add_argument('--mode', type=str, default='edl', choices=['edl', 'baseline'],
-                        help="Chọn chế độ chạy: 'edl' hoặc 'baseline'")
-    parser.add_argument('--fold', type=int, default=0, help="Fold cần validation (Default: 0)")
+    parser = argparse.ArgumentParser(description="Chạy dự đoán cho BraTS EDL/Baseline")
+    parser.add_argument('--mode', type=str, default='edl', 
+                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw'],
+                        help="Chọn chế độ chạy")
+    
+    parser.add_argument('--fold', type=int, default=0)
+    parser.add_argument('--run_mode', type=str, default='validation_split', 
+                        choices=['validation_split', 'range', 'random'])
+                        
     return parser.parse_args()
 
 def main():
@@ -31,7 +36,9 @@ def main():
     CONFIG = BASE_CONFIG.copy()
     CONFIG.update(MODEL_CONFIGS[args.mode])
     CONFIG["fold"] = args.fold # Override fold
-    
+    CONFIG["run_mode"] = args.run_mode # Override run mode
+    CONFIG["checkpoint_path"] = CONFIG["checkpoint_path"].format(fold=args.fold)
+
     # Tạo folder output trước
     os.makedirs(CONFIG["output_folder"], exist_ok=True)
 
@@ -103,13 +110,25 @@ def main():
         cols += [c for c in df.columns if c not in cols]
         df = df[cols]
         
-        csv_detail_name = CONFIG.get("file_csv_detail", "metrics_detailed.csv")
-        detail_path = os.path.join(CONFIG["output_folder"], csv_detail_name)
+        # --- LẤY SỐ FOLD HIỆN TẠI ---
+        fold_num = CONFIG.get("fold", 0)
+        
+        # --- 1. LƯU BẢNG CHI TIẾT (VÀO THƯ MỤC RIÊNG) ---
+        detail_dir = os.path.join(CONFIG["output_folder"], "metrics_detailed")
+        os.makedirs(detail_dir, exist_ok=True) # Tự tạo folder nếu chưa có
+        
+        detail_filename = f"metrics_detailed_fold{fold_num}.csv"
+        detail_path = os.path.join(detail_dir, detail_filename)
         df.to_csv(detail_path, index=False)
         
         if CONFIG["metrics_average"]:
-            csv_summary_name = CONFIG.get("file_csv_summary", "metrics_summary.csv")
-            summary_path = os.path.join(CONFIG["output_folder"], csv_summary_name)
+            # --- 2. LƯU BẢNG TÓM TẮT (VÀO THƯ MỤC RIÊNG) ---
+            summary_dir = os.path.join(CONFIG["output_folder"], "metrics_summary")
+            os.makedirs(summary_dir, exist_ok=True)
+            
+            summary_filename = f"metrics_summary_fold{fold_num}.csv"
+            summary_path = os.path.join(summary_dir, summary_filename)
+            
             mean_df = df.drop(columns=["Case_ID"]).mean()
             mean_df.to_csv(summary_path)
             
@@ -131,7 +150,7 @@ def main():
             print(f"{'HD95 (mm)':<15} | {m_h_wt:.4f}     | {m_h_tc:.4f}     | {m_h_et:.4f}")
             print("-" * 60)
             print(f"Overall Mean Dice: {mean_df.get('Mean_Dice', 0):.4f}")
-            print(f"✅ Report saved to: {CONFIG['output_folder']}")
+            print(f"✅ Report saved to: {summary_path}") # In ra đường dẫn mới cho dễ check
 
     print("\n✅ --- PIPELINE COMPLETED ---")
 

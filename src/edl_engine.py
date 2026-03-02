@@ -60,9 +60,17 @@ class EDLInferenceEngine:
     def _initialize_predictor(self):
         """Khởi tạo và load trọng số Model"""
         print("🚀 Initializing nnU-Net Predictor...")
+        # 1. Lấy 2 công tắc từ config (nếu không có thì máy tự gán True và 0.5)
+        use_tta = self.config.get("use_mirroring", True)
+        step_size = self.config.get("tile_step_size", 0.5)
+        print(f"   -> Cấu hình: Lật ảnh={use_tta} | Bước trượt={step_size}")
+
         try:
+            # 2. Truyền 2 công tắc đó vào biến của nnUNetPredictor
             predictor = nnUNetPredictor(
-                tile_step_size=0.5, use_gaussian=True, use_mirroring=True,
+                tile_step_size=step_size, 
+                use_gaussian=True, 
+                use_mirroring=use_tta,
                 device=torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'),
                 verbose=False
             )

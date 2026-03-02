@@ -1,5 +1,5 @@
 """
-⚙️ CONFIGURATION MODULE (UPDATED V3)
+CONFIGURATION MODULE (UPDATED V3)
 Hỗ trợ Multi-Model Configuration (EDL vs Baseline).
 """
 
@@ -74,17 +74,39 @@ BASE_CONFIG = {
 
 # 2. CẤU HÌNH RIÊNG (SPECIFIC PATHS)
 MODEL_CONFIGS = {
-    # --- Cấu hình cho EDL Model ---
+    # --- 1. EDL XỊN (Có TTA, trượt 50%) ---
     "edl": {
-        "model_mode": "edl", # Bật tính năng Uncertainty
-        "checkpoint_path": "/content/drive/MyDrive/XUM_project/nnUNet_results/Dataset101_BraTS2020/EDLTrainer__nnUNetPlans__3d_fullres/fold_0/checkpoint_best.pth", # Trỏ đến file .pth đã train bằng EDLTrainer (file này chứa trọng số mạng đã học cách dự đoán tham số Dirichlet).
-        "output_folder":   "/content/drive/MyDrive/XUM_project/inference_results_edl", # Kết quả sẽ lưu vào thư mục inference_results_edl
+        "model_mode": "edl", 
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
     },
     
-    # --- Cấu hình cho Baseline Model ---
+    # --- 2. EDL THÔ (Tắt TTA, trượt 100%) ---
+    "edl_raw": {
+        "model_mode": "edl", # Vẫn dùng logic tách độ bất định
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer__nnUNetPlans__3d_fullres_RAW",
+        "use_mirroring": False,
+        "tile_step_size": 1.0
+    },
+
+    # --- 3. BASELINE XỊN ---
     "baseline": {
-        "model_mode": "baseline", # Tắt Uncertainty, chỉ chạy Seg
-        "checkpoint_path": "/content/drive/MyDrive/XUM_project/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer__nnUNetPlans__3d_fullres/fold_0/checkpoint_best.pth", # Trỏ tới file .pth của mô hình thường (nnUNetTrainer).
-        "output_folder":   "/content/drive/MyDrive/XUM_project/inference_results_baseline",
+        "model_mode": "baseline", 
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
+    },
+
+    # --- 4. BASELINE THÔ ---
+    "baseline_raw": {
+        "model_mode": "baseline",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres_RAW",
+        "use_mirroring": False,
+        "tile_step_size": 1.0
     }
 }

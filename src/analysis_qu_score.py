@@ -1,5 +1,5 @@
 """
-🚀 MAIN ANALYSIS SCRIPT (REFACTORED V13 - FINAL QU-BRATS STANDARD)
+MAIN ANALYSIS SCRIPT (REFACTORED V13 - FINAL QU-BRATS STANDARD)
 Chạy phân tích QU-BraTS Score và AUSE với chuẩn hóa 0-100.
 Tích hợp logic tính toán chính xác và vẽ biểu đồ.
 """
@@ -22,9 +22,9 @@ except NameError: pass
 
 # --- IMPORTS ---
 try:
-    from src.config import BASE_CONFIG, MODEL_CONFIGS
-    from src.analysis.utils import load_nifti_safe, get_binary_mask
-    from src.analysis.metrics import compute_metrics_by_thresholds, calculate_auc_score
+    from .src.config import BASE_CONFIG, MODEL_CONFIGS
+    from .src.analysis.utils import load_nifti_safe, get_binary_mask
+    from .src.analysis.metrics import compute_metrics_by_thresholds, calculate_auc_score
     # Lưu ý: Cần cập nhật plotting.py để hỗ trợ vẽ theo threshold nếu muốn, 
     # nhưng ở đây ta sẽ dùng matplotlib trực tiếp cho đơn giản hoặc cập nhật sau.
     # Tạm thời ta sẽ vẽ trực tiếp trong file này để kiểm soát tốt hơn.
@@ -204,7 +204,9 @@ def run_analysis_pipeline(mode='edl', n_cases=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', type=str, default='edl')
+    parser.add_argument('--mode', type=str, default='edl', 
+                        choices=['edl', 'edl_raw'])
+    
     parser.add_argument('--limit', type=int, default=0)
     if 'ipykernel' in sys.modules: args = parser.parse_args([])
     else: args = parser.parse_args()

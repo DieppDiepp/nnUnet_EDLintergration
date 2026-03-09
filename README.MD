@@ -1,159 +1,137 @@
+*Note: Vietnamese version in README_Vietnamese-version.MD.*
+
 # Evidential nnU-Net: Highly Accurate Brain Tumor Segmentation with Reliable Uncertainty Decomposition
 
-Repository này chứa mã nguồn và tài liệu thực nghiệm cho phương pháp tích hợp **Evidential Deep Learning (EDL)** vào khung làm việc **nnU-Net v2** nhằm giải quyết bài toán phân đoạn khối u não đa phương thức trên tập dữ liệu **BraTS 2020**.
+This repository contains the source code and experimental documentation for integrating **Evidential Deep Learning (EDL)** into the **nnU-Net v2** framework to solve the multimodal brain tumor segmentation problem on the **BraTS 2020** dataset.
 
-Mục tiêu chính của dự án là cung cấp khả năng **Ước lượng độ bất định (Uncertainty Quantification)** có độ tin cậy cao và phân rã chúng thành hai thành phần riêng biệt: **Aleatoric** (do nhiễu dữ liệu) và **Epistemic** (do thiếu hụt tri thức của mô hình). Đặc biệt, phương pháp đề xuất duy trì và vượt qua hiệu năng phân đoạn của mô hình Baseline SOTA mà không cần tăng chi phí tính toán (single forward pass).
+The main objective of the project is to provide highly reliable **Uncertainty Quantification** capabilities and decompose them into two distinct components: **Aleatoric** (due to data noise) and **Epistemic** (due to the model's lack of knowledge). Specifically, the proposed method maintains and surpasses the segmentation performance of the SOTA Baseline model without increasing computational costs (single forward pass).
 
+## Segmentation Result Visualization
 
-## Trực quan hóa kết quả phân đoạn
-Chú thích:
+Note:
 
-- <b>Hàng trên</b>: MRI Input, Ground Truth, AI Prediction. 
-
-- <b>Hàng dưới</b>: Total Uncertainty, Aleatoric Uncertainty (nhiễu dữ liệu viền khối u) và Epistemic Uncertainty (vùng mô hình thiếu tự tin).
+* Top row: MRI Input, Ground Truth, AI Prediction.
+* Bottom row: Total Uncertainty, Aleatoric Uncertainty (tumor border data noise), and Epistemic Uncertainty (regions where the model lacks confidence).
 
 <br>
 
 ![BraTS axial 50](img/BraTs_012_axial-50.png)
-
-<b>Hình 1.</b> Minh họa dự đoán, quá trình tạo bản đồ bất định và phân rã độ bất định 
-
-<br>
+**Figure 1**. Illustration of prediction, uncertainty map generation process, and uncertainty decomposition
 
 ![BraTS axial 25 uncertainty](img/BraTs_012_axial-25_uncertainty-hightlight.png)
-
-<b>Hình 2.</b> Minh họa độ bất định, dễ thấy dù mô hình thất bại hoàn toàn trong dự đoán khối U nhưng độ bất định đã sáng lên và bắt rất tốt.
-
-
+**Figure 2**. Illustration of uncertainty. It is easy to see that even though the model completely fails in predicting the tumor, the uncertainty map lights up and captures it very well.
 
 ---
 
-## 1. Giới thiệu
+## 1. Introduction
 
-Phân đoạn khối u não tự động đã đạt được hiệu suất cực kỳ ấn tượng với các kiến trúc CNN 3D tiên tiến như nnU-Net. Tuy nhiên, trong y khoa, việc chỉ đưa ra dự đoán "cứng" (hard prediction) là chưa đủ. Các bác sĩ cần biết **mô hình tự tin đến mức nào** vào dự đoán đó để tránh các can thiệp sai lầm.
+Automated brain tumor segmentation has achieved extremely impressive performance with advanced 3D CNN architectures like nnU-Net. However, in medicine, simply providing a "hard prediction" is not enough. Doctors need to know **how confident the model is** in that prediction to avoid erroneous interventions.
 
-Các phương pháp ước lượng bất định truyền thống như Monte Carlo Dropout hay Deep Ensemble thường mắc phải hai nhược điểm chí mạng:
+Traditional uncertainty estimation methods like Monte Carlo Dropout or Deep Ensemble often suffer from two fatal drawbacks:
 
-1. Chi phí tính toán khổng lồ (phải chạy suy luận nhiều lần hoặc train nhiều mô hình).
-2. Thường đánh đổi độ chính xác phân đoạn (Accuracy) để lấy độ hiệu chuẩn (Calibration).
+1. Enormous computational cost (must run inference multiple times or train multiple models).
+2. Often trade-off segmentation accuracy (Accuracy) for calibration.
 
-Dự án này đề xuất **Evidential nnU-Net**, một giải pháp thay thế lớp Softmax truyền thống bằng phân phối Dirichlet. Kỹ thuật này trực tiếp mô hình hóa mật độ xác suất của các lớp phân đoạn, cho phép tính toán độ bất định chỉ trong **một lần truyền xuôi (single forward pass)** với độ chính xác vượt trội. Đồng thời hiệu chuẩn ECE (Expected Calibration Error), điểm số QuBraTS vượt các phương pháp SOTA (State of the Art) hiện tại.
+This project proposes **Evidential nnU-Net**, a solution that replaces the traditional Softmax layer with a Dirichlet distribution. This technique directly models the probability density of segmentation classes, allowing uncertainty computation in just **a single forward pass** with superior accuracy. Simultaneously, the Expected Calibration Error (ECE) and QuBraTS scores surpass current SOTA (State of the Art) methods.
 
----
 
-## 2. Phương pháp luận
+## 2. Methodology
 
-### 2.1. Kiến trúc nền tảng (nnU-Net v2)
+### 2.1. Foundation Architecture (nnU-Net v2)
 
-* **Framework:** Kế thừa sự tự động hóa cấu hình xuất sắc của nnU-Net v2.
-* **Mạng Backbone:** 3D U-Net (Full resolution) xử lý đa phương thức (T1, T1ce, T2, FLAIR).
-* **Chiến lược huấn luyện:** Chuẩn mực 5-fold Cross Validation để đảm bảo tính khách quan và công bằng cao nhất khi so sánh. Chúng tôi sử dụng seed chia tập huấn luyện và kiểm thử theo mặc định của nnUnet (`split_seed = 12345`)
+* **Framework:** Inherits the excellent self-configuring capabilities of nnU-Net v2.
+* **Backbone Network:** 3D U-Net (Full resolution) processing multimodal inputs (T1, T1ce, T2, FLAIR).
+* **Training Strategy:** Standard 5-fold Cross Validation to ensure the highest objectivity and fairness in comparison. We use nnU-Net's default seed for train/test splitting (`split_seed = 12345`).
 
 ### 2.2. Evidential Deep Learning (EDL)
 
-Chúng tôi tùy biến quy trình huấn luyện của nnU-Net thông qua class `EDLLoss` và `EDLTrainer`:
+We customize nnU-Net's training pipeline through the `EDLLoss` and `EDLTrainer` classes:
 
+$$\mathcal{L}_{\text{Total}} = \underbrace{\mathcal{L}_{\text{Bayes}}}_{\text{Accuracy}} + \lambda_t \cdot \underbrace{\mathcal{L}_{\text{KL}}}_{\text{Reliability}} + \underbrace{\mathcal{L}_{\text{Dice}}(\alpha / S)}_{\text{Segmentation}}$$
 
-$$
-\mathcal{L}_{\text{Total}} = \underbrace{\mathcal{L}_{\text{Bayes}}}_{\text{Accuracy}} + \lambda_t \cdot \underbrace{\mathcal{L}_{\text{KL}}}_{\text{Reliability}} + \underbrace{\mathcal{L}_{\text{Dice}}(\alpha / S)}_{\text{Segmentation}}
-$$
+* **Evidence Activation Function:** Replaces Softmax with Softplus to ensure the collected evidence is always positive.
+* **Multi-component Custom Loss:**
 
-* **Hàm kích hoạt bằng chứng:** Thay thế Softmax bằng Softplus để đảm bảo bằng chứng (evidence) thu thập được luôn là số dương.
-* **Hàm mất mát (Custom Loss) đa thành phần:**
-1. **Expected Cross-Entropy (Data Fit Loss):** Tối ưu hóa dự đoán sát với Ground Truth dựa trên kỳ vọng của phân phối Dirichlet.
-2. **KL Divergence Penalty (với Annealing Step):** Phạt nghiêm khắc các dự đoán "tự tin thái quá" ở những vùng mô hình đoán sai, ép mô hình trở về phân phối Uniform khi gặp dữ liệu lạ.
-3. **Dice Loss:** Khắc phục tình trạng mất cân bằng lớp cực đoan trong ảnh y tế, tối ưu hóa trực tiếp độ trùng lặp không gian (spatial overlap).
+1. **Expected Cross-Entropy (Data Fit Loss):** Optimizes the prediction closely to the Ground Truth based on the expectation of the Dirichlet distribution.
+2. **KL Divergence Penalty (with Annealing Step):** Strictly penalizes "overconfident" predictions in regions where the model guesses incorrectly, forcing the model to return to a Uniform distribution when encountering unfamiliar data.
+3. **Dice Loss:** Overcomes extreme class imbalance in medical imaging, directly optimizing spatial overlap.
 
+### 2.3. Uncertainty Decomposition Mechanism
 
-### 2.3. Cơ chế Phân rã độ bất định
+Based on Dempster-Shafer evidence theory, the Total Uncertainty is clearly separated into:
 
-Dựa trên lý thuyết độ tin cậy Dempster-Shafer, tổng độ bất định (Total Uncertainty) được tách bạch rõ ràng thành:
-
-
-$$
-\underbrace{\mathcal{I}[y,\theta]}_{\text{Epistemic}} = \underbrace{H[\mathbb{E}[p]]}_{\text{Total}} - \underbrace{\mathbb{E}[H[p]]}_{\text{Aleatoric}}
-$$
+$$\underbrace{\mathcal{I}[y,\theta]}_{\text{Epistemic}} = \underbrace{H[\mathbb{E}[p]]}_{\text{Total}} - \underbrace{\mathbb{E}[H[p]]}_{\text{Aleatoric}}$$
 
 ### a. Total Uncertainty
-Entropy của xác suất trung bình.
 
-$$
-\mathcal{U}_{Total} = -\sum_k \hat{p}_k \ln \hat{p}_k
-$$
+Entropy of the expected probability.
 
-*(Sự hỗn loạn của quyết định cuối)*
+$$\mathcal{U}_{Total} = -\sum_k \hat{p}_k \ln \hat{p}_k$$
 
+*(The chaos of the final decision)*
 
 ### b. Aleatoric Uncertainty
-Trung bình entropy của từng điểm (sử dụng hàm Digamma $\psi$).
 
-$$
-\mathcal{U}_{Aleatoric} = \sum_k \hat{p}_k \left( \psi(S+1) - \psi(\alpha_k+1) \right)
-$$
+Expected entropy of each point (using Digamma function $\psi$).
 
-*(Độ nhiễu của dữ liệu)*
+$$\mathcal{U}_{Aleatoric} = \sum_k \hat{p}_k \left( \psi(S+1) - \psi(\alpha_k+1) \right)$$
 
+*(Data noise)*
 
 ### c. Epistemic Uncertainty
-Phần dư của phép trừ:
 
-$$
-\mathcal{U}_{Epistemic} = \mathcal{U}_{Total} - \mathcal{U}_{Aleatoric}
-$$
+The remainder of the subtraction:
 
-- Đo lường sự **phân tán của đám mây xác suất** -> Có thể dùng để **phát hiện dữ liệu lạ (OOD)**
+$$\mathcal{U}_{Epistemic} = \mathcal{U}_{Total} - \mathcal{U}_{Aleatoric}$$
 
-* **Aleatoric Uncertainty (Nhiễu dữ liệu):** Bắt nguồn từ chất lượng ảnh MRI kém, ranh giới mờ nhạt giữa khối u và mô lành. Sự bất định này không thể giảm bớt dù có train thêm dữ liệu.
-* **Epistemic Uncertainty (Độ thiếu hiểu biết của mô hình):** Bắt nguồn từ việc mô hình chưa gặp dạng khối u này bao giờ (Out-of-Distribution). Có thể được khắc phục bằng cách thu thập thêm dữ liệu huấn luyện.
+* Measures the **dispersion of the probability cloud** -> Can be used to **detect Out-of-Distribution (OOD) data**
 
+* **Aleatoric Uncertainty (Data Noise):** Originates from poor MRI image quality, blurred boundaries between the tumor and healthy tissue. This uncertainty cannot be reduced even with more training data.
+* **Epistemic Uncertainty (Model Ignorance):** Originates from the model never having encountered this type of tumor before (Out-of-Distribution). It can be mitigated by collecting more training data.
 
+## 3. Analysis of the "Overconfidence" Phenomenon and the Superiority of EDL
 
-## 3. Phân tích Hiện tượng "Overconfidence" và Sự ưu việt của EDL
+In medical segmentation problems, deep learning models often suffer from **Overconfidence** syndrome. When trying to optimize the Dice Score, the model tends to push the prediction probability approaching 1.0 (100%) even in ambiguous boundary regions.
 
-Trong các bài toán phân vùng y tế, các mô hình học sâu thường mắc phải hội chứng **Tự tin thái quá (Overconfidence)**. Khi cố gắng tối ưu hóa Dice Score, mô hình có xu hướng đẩy xác suất dự đoán lên tiệm cận 1.0 (100%) ngay cả ở những vùng biên mờ mịt. 
+The reason is that classification models optimize for accuracy (in the context of this problem, Dice), trying to output the highest probability value in the class the model believes is correct with the goal of pushing the loss function to 0. This inadvertently causes the ECE score of these models to be very high (poor), because the most confident samples are all pushed into the last bin, while the less confident samples in the remaining bins have a high probability of being incorrect predictions. This increases the **Expected Calibration Error (ECE)**.
 
-Lý do là các mô hình phân loại tối ưu độ chính xác (trong ngữ cảnh bài toán này là dice), cố xuất ra giá trị xác suất cao nhất ở lớp mà mô hình tin là đúng với mục tiêu đẩy hàm loss về 0. Điều này vô tình làm cho chỉ số ECE của các mô hình này rất cao (tệ), bởi vì các mẫu tự tin nhất đều đã bị đẩy vô bin cuối cùng, các mẫu kém tự tin hơn ở **các** bin còn lại có nhiều xác suất là dự đoán sai. Điều này làm tăng sai số hiệu chuẩn kỳ vọng (**Expected Calibration Error - ECE**).
-
-EDL giải quyết triệt để vấn đề này bằng cách hấp thụ phần "xác suất ảo" vào một đại lượng bất định (Uncertainty), giúp mô hình giữ được sự khiêm tốn cần thiết.
-
+EDL thoroughly solves this problem by absorbing the "virtual probability" into an Uncertainty metric, helping the model maintain necessary humility.
 
 ![Baseline nnU-Net (50 Epochs)](img/reliability_diagram_10bins_nnUnet_base.png)
 
-*> Hình 3a: Baseline nnU-Net (50 Epochs). Mặc dù mới ở giai đoạn đầu huấn luyện, mô hình đã tỏ ra quá tự tin, tạo ra các "Calibration Gap" (vùng gạch chéo đỏ) lớn ở các bin xác suất cao. ECE lên tới 1.536%.*
-
+*> Figure 3a: Baseline nnU-Net (50 Epochs). Despite being in the early stages of training, the model already appears too confident, creating large "Calibration Gaps" (red hatched areas) in the high probability bins. ECE reaches up to 1.536%.*
 
 ![Evidential nnU-Net (50 Epochs)](img/reliability_diagram_10bins_EDL50.png)
 
-*> Hình 3b: Evidential nnU-Net (50 Epochs). Nhờ cơ chế phạt KL Divergence, EDL kiểm soát độ tự tin cực tốt, bám sát đường Perfect Calibration (đứt nét). ECE giảm mạnh chỉ còn 0.616%.*
-
+*> Figure 3b: Evidential nnU-Net (50 Epochs). Thanks to the KL Divergence penalty mechanism, EDL controls confidence extremely well, closely following the Perfect Calibration line (dashed). ECE sharply drops to only 0.616%.*
 
 ![Evidential nnU-Net (250 Epochs)](img/reliability_diagram_10bins_EDL250.png)
 
-*> Hình 3c: Evidential nnU-Net (250 Epochs). Khi huấn luyện dài hạn, mô hình đạt đỉnh cao về độ chính xác (Dice). Dù có xu hướng tự tin hơn, EDL vẫn gồng gánh xuất sắc để giữ ECE ở mức an toàn 0.805% (thấp hơn một nửa so với Baseline 50 epochs).*
+*> Figure 3c: Evidential nnU-Net (250 Epochs). When trained long-term, the model reaches its peak in accuracy (Dice). Although tending to be more confident, EDL still excellently manages to keep ECE at a safe level of 0.805% (less than half of the 50-epoch Baseline).*
 
 ---
 
-## 4. Kết quả Thực nghiệm & Benchmark SOTA
+## 4. Experimental Results & SOTA Benchmark
 
-Mô hình được huấn luyện và đánh giá nghiêm ngặt bằng phương pháp **5-fold Cross Validation** trên toàn bộ tập dữ liệu huấn luyện BraTS 2020 (đây là chuẩn đánh giá khắt khe nhất được MICCAI đề xuất, thay vì tự chia tỷ lệ train/test cố định).
+The model is rigorously trained and evaluated using the **5-fold Cross Validation** method on the entire BraTS 2020 training dataset (this is the strictest evaluation standard proposed by MICCAI, instead of manually splitting fixed train/test ratios).
 
-### 4.1. Hiệu năng tổng thể (Dice & HD95)
+### 4.1. Overall Performance (Dice & HD95)
 
-*Cấu hình: TTA (Test Time Augmentation), trượt 50%. HD95 càng thấp càng tốt, Dice càng cao càng tốt.*
+*Configuration: TTA (Test Time Augmentation), 50% sliding window. Lower HD95 is better, higher Dice is better.*
 
-| Phương pháp | Epochs | Mean Dice (%) | WT | TC | ET | Mean HD95 (mm) | WT | TC | ET |
+| Method | Epochs | Mean Dice (%) | WT | TC | ET | Mean HD95 (mm) | WT | TC | ET |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Baseline nnU-Net| 50 | 87.17 | 92.52 | 89.92 | 79.07 | 11.59 | 3.75 | 3.69 | 27.34 |
+| Baseline nnU-Net | 50 | 87.17 | 92.52 | 89.92 | 79.07 | 11.59 | 3.75 | 3.69 | 27.34 |
 | Evidential nnU-Net | 50 | 85.34 | 92.05 | 87.97 | 76.00 | 12.32 | 3.87 | 4.20 | 28.88 |
 | **Evidential nnU-Net (Ours)** | **250** | **88.96** | **93.63** | **92.00** | **81.25** | **10.71** | **2.71** | **2.82** | **26.59** |
 
-*> Nhận xét: Khi được huấn luyện đủ số epoch (250), Evidential nnU-Net không những không bị tụt hậu mà còn bứt phá mạnh mẽ, đạt Mean Dice xấp xỉ 89% và giảm đáng kể khoảng cách HD95.*
+*> Observation: When trained for enough epochs (250), Evidential nnU-Net not only does not fall behind but also strongly breaks through, achieving a Mean Dice of approximately 89% and significantly reducing the HD95 gap.*
 
-### 4.2. So sánh với các phương pháp SOTA (BraTS 2020)
+### 4.2. Comparison with SOTA methods (BraTS 2020)
 
-Kết quả của phương pháp đề xuất được đặt lên bàn cân với các kiến trúc tiên tiến nhất hiện nay trên cùng bộ dữ liệu.
+The results of the proposed method are weighed against the most advanced architectures currently available on the same dataset.
 
-| Phương pháp | Whole Tumor (WT) | Tumor Core (TC) | Enhancing Tumor (ET) | Mean Dice |
+| Method | Whole Tumor (WT) | Tumor Core (TC) | Enhancing Tumor (ET) | Mean Dice |
 | --- | --- | --- | --- | --- |
 | dResU-Net | 86.60 | 83.57 | 80.04 | 83.40 |
 | ADHDC-Net | 89.75 | 83.31 | 78.01 | 83.69 |
@@ -163,68 +141,70 @@ Kết quả của phương pháp đề xuất được đặt lên bàn cân v�
 | *Energy-Based Attention* | *89.13* | *88.97* | **87.47** | *88.52* |
 | **Evidential nnU-Net (Ours)** | **93.63** | **92.00** | 81.25 | **88.96** |
 
-*> Nhận xét: Phương pháp đề xuất thiết lập mức SOTA mới về Mean Dice (88.96%), đặc biệt vượt trội ở khả năng khoanh vùng Toàn bộ khối u (WT: 93.63%) và Lõi khối u (TC: 92.00%).*
+*> Observation: The proposed method establishes a new SOTA level for Mean Dice (88.96%), particularly excelling in segmenting the Whole Tumor (WT: 93.63%) and Tumor Core (TC: 92.00%).*
 
-### 4.3. Đánh giá chất lượng Độ bất định (Uncertainty Benchmark)
+### 4.3. Uncertainty Quality Evaluation (Uncertainty Benchmark)
 
-**Lưu ý:** Đa số các bài báo tham chiếu dưới đây sử dụng tệp dữ liệu tự chia train dev test của họ (ví dụ: EDL Regioned-base chia 236 train / 59 validation/ 74 test), trong khi kết quả của chúng tôi (Ours) là trung bình của **5-fold CV (đánh giá toàn diện trên toàn bộ dữ liệu)** để đảm bảo tính minh bạch.
+**Note:** Most of the reference papers below use their own custom-split train/dev/test datasets (e.g., Region-based EDL splits 236 train / 59 validation / 74 test), whereas our results (Ours) are the average of a **5-fold CV (comprehensive evaluation across the entire data)** to ensure transparency.
 
-| Phương pháp | Mean Dice ↑ | ECE (%) ↓ | BraS* ↑ | Ghi chú |
-|---|---|---|---|---|
-| Deep Ensemble | 0.807 | 1.000% | 0.873 | Tốn gấp $N$ lần chi phí tính toán |
-| MC Dropout | 0.804 | 0.900% | 0.869 | Phải lấy mẫu nhiều lần (Multiple passes) |
+| Method | Mean Dice ↑ | ECE (%) ↓ | BraS* ↑ | Notes |
+| --- | --- | --- | --- | --- |
+| Deep Ensemble | 0.807 | 1.000% | 0.873 | Costs $N$ times more computational power |
+| MC Dropout | 0.804 | 0.900% | 0.869 | Must sample multiple times (Multiple passes) |
 | EDL (TBraTS, 200 epochs) | 0.790 | 1.900% | 0.862 | Single pass |
 | EDL (Region-based, wDICE, 200 epochs) | 0.793 | 1.600% | 0.874 | Single pass |
 | **Our EDL (250 epochs)** | **0.889** | **0.805%** | **0.930** | **Single pass, 5-Fold Cross Validation** |
 
-*> Nhận xét: Phương pháp của chúng tôi không chỉ đạt mức Dice vượt trội hoàn toàn so với các biến thể EDL khác (0.889 vs 0.790), mà còn ép ECE xuống mức kỷ lục (0.805%), vượt qua cả phương pháp đắt đỏ như MC Dropout.*
+*> Observation: Our method not only achieves an overwhelmingly superior Dice level compared to other EDL variants (0.889 vs 0.790), but also pushes ECE down to a record level (0.805%), surpassing even expensive methods like MC Dropout.*
 
 ---
 
-**\*BraS (QU-BraTS Score).** Đây là thước đo chính thức được sử dụng trong **BraTS 2020 – Quantification of Uncertainty in Brain Tumor Segmentation (QU-BraTS) challenge** để đánh giá chất lượng của các bản đồ độ bất định (uncertainty maps).
+***BraS (QU-BraTS Score).** This is the official metric used in the **BraTS 2020 – Quantification of Uncertainty in Brain Tumor Segmentation (QU-BraTS) challenge** to evaluate the quality of uncertainty maps.
 
-Khác với các metric segmentation truyền thống chỉ đo độ chính xác (như Dice), QU-BraTS đánh giá liệu **độ bất định do mô hình dự đoán có thực sự tương quan với lỗi phân đoạn hay không**. Nói cách khác, một mô hình tốt không chỉ dự đoán chính xác mà còn phải **biết khi nào mình không chắc chắn**.
+Unlike traditional segmentation metrics that only measure accuracy (like Dice), QU-BraTS evaluates whether **the uncertainty predicted by the model truly correlates with segmentation errors**. In other words, a good model not only predicts accurately but must also **know when it is uncertain**.
 
-Metric này tổng hợp ba thành phần:
+This metric aggregates three components:
 
-- **AUC Dice**: đo mức độ tương quan giữa độ tin cậy và chất lượng phân đoạn  
-- **AUC FTP (False Tumor Positive)**: phạt nếu mô hình tự tin sai ở vùng nền  
-- **AUC FTN (False Tumor Negative)**: phạt nếu mô hình tự tin bỏ sót khối u  
+* **AUC Dice**: measures the correlation between confidence and segmentation quality  
+* **AUC FTP (False Tumor Positive)**: penalizes if the model is falsely confident in background regions  
+* **AUC FTN (False Tumor Negative)**: penalizes if the model is confidently missing a tumor  
 
-Điểm số cuối cùng nằm trong khoảng **[0,1]**, với **giá trị càng cao càng tốt**.
+The final score ranges from **[0,1]**, with **higher values being better**.
 
 ![QuBraTS Score ET](img/qu_brats_curve_ET.png)
 
-*>Hình 4: Minh họa các đường cong AUC của class ET với mô hình EDL 250 epochs*
+*> Figure 4: Illustration of AUC curves of the ET class with the 250-epoch EDL model.*
 
-## 5. Trích dẫn (Citation)
+## 5. Citation
 
-Nếu bạn sử dụng mã nguồn hoặc lấy cảm hứng từ phương pháp này cho nghiên cứu của mình, vui lòng trích dẫn các tài liệu sau:
+If you use this source code or take inspiration from this method for your research, please cite the following documents:
 
 ```bibtex
 @article{nguyen2026uncertainty,
-  title={Evidential nnU-Net: Highly Accurate Brain Tumor Segmentation with Reliable Uncertainty Decomposition},
-  author={Nguyen, Luong Dac and Son, Bui Truong Thai and Long, Ung Hoang and Nguyen-Tat, Thien B.},
-  journal={Preprint submitted to Elsevier},
-  year={2024}
+  title={Evidential nnU-Net: Highly Accurate Brain Tumor Segmentation with Reliable Uncertainty Decomposition},
+  author={Nguyen, Luong Dac and Son, Bui Truong Thai and Long, Ung Hoang and Nguyen-Tat, Thien B.},
+  journal={Preprint submitted to Elsevier},
+  year={2024}
 }
 
 @article{isensee2021nnu,
-  title={nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation},
-  author={Isensee, Fabian and Jaeger, Paul F and Kohl, Simon AA and Petersen, Jens and Maier-Hein, Klaus H},
-  journal={Nature methods},
-  volume={18},
-  number={2},
-  pages={203--211},
-  year={2021},
-  publisher={Nature Publishing Group}
+  title={nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation},
+  author={Isensee, Fabian and Jaeger, Paul F and Kohl, Simon AA and Petersen, Jens and Maier-Hein, Klaus H},
+  journal={Nature methods},
+  volume={18},
+  number={2},
+  pages={203--211},
+  year={2021},
+  publisher={Nature Publishing Group}
 }
 
 @inproceedings{isensee2020nnu,
-  title={nnU-Net for brain tumor segmentation},
-  author={Isensee, Fabian and J{\"a}ger, Paul F and Full, Peter M and Vollmuth, Philipp and Maier-Hein, Klaus H},
-  booktitle={International MICCAI Brainlesion Workshop},
-  pages={118--132},
-  year={2020},
-  organization={Springer}
+  title={nnU-Net for brain tumor segmentation},
+  author={Isensee, Fabian and J{\"a}ger, Paul F and Full, Peter M and Vollmuth, Philipp and Maier-Hein, Klaus H},
+  booktitle={International MICCAI Brainlesion Workshop},
+  pages={118--132},
+  year={2020},
+  organization={Springer}
 }
+
+```

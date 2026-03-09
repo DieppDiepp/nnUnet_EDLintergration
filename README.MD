@@ -141,17 +141,17 @@ Lý do là các mô hình phân loại tối ưu độ chính xác (trong ngữ 
 EDL giải quyết triệt để vấn đề này bằng cách hấp thụ phần "xác suất ảo" vào một đại lượng bất định (Uncertainty), giúp mô hình giữ được sự khiêm tốn cần thiết.
 
 
-![Baseline nnU-Net (50 Epochs)](img\reliability_diagram_10bins_nnUnet_base.png)
+![Baseline nnU-Net (50 Epochs)](img/reliability_diagram_10bins_nnUnet_base.png)
 
 *> Hình 3a: Baseline nnU-Net (50 Epochs). Mặc dù mới ở giai đoạn đầu huấn luyện, mô hình đã tỏ ra quá tự tin, tạo ra các "Calibration Gap" (vùng gạch chéo đỏ) lớn ở các bin xác suất cao. ECE lên tới 1.536%.*
 
 
-![Evidential nnU-Net (50 Epochs)](img\reliability_diagram_10bins_EDL50.png)
+![Evidential nnU-Net (50 Epochs)](img/reliability_diagram_10bins_EDL50.png)
 
 *> Hình 3b: Evidential nnU-Net (50 Epochs). Nhờ cơ chế phạt KL Divergence, EDL kiểm soát độ tự tin cực tốt, bám sát đường Perfect Calibration (đứt nét). ECE giảm mạnh chỉ còn 0.616%.*
 
 
-![Evidential nnU-Net (250 Epochs)](img\reliability_diagram_10bins_EDL250.png)
+![Evidential nnU-Net (250 Epochs)](img/reliability_diagram_10bins_EDL250.png)
 
 *> Hình 3c: Evidential nnU-Net (250 Epochs). Khi huấn luyện dài hạn, mô hình đạt đỉnh cao về độ chính xác (Dice). Dù có xu hướng tự tin hơn, EDL vẫn gồng gánh xuất sắc để giữ ECE ở mức an toàn 0.805% (thấp hơn một nửa so với Baseline 50 epochs).*
 
@@ -217,7 +217,7 @@ Metric này tổng hợp ba thành phần:
 
 Điểm số cuối cùng nằm trong khoảng **[0,1]**, với **giá trị càng cao càng tốt**.
 
-![QuBraTS Score ET](img\qu_brats_curve_ET.png)
+![QuBraTS Score ET](img/qu_brats_curve_ET.png)
 
 *>Hình 4: Minh họa các đường cong AUC của class ET với mô hình EDL 250 epochs*
 

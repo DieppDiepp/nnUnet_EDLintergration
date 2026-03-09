@@ -71,20 +71,14 @@ Dựa trên lý thuyết độ tin cậy Dempster-Shafer, tổng độ bất đ�
 
 
 $$
-\underbrace{\mathcal{I}[y,\theta]}_{\text{Epistemic}}
-=
-\underbrace{H[\mathbb{E}[p]]}_{\text{Total}}
--
-\underbrace{\mathbb{E}[H[p]]}_{\text{Aleatoric}}
+\underbrace{\mathcal{I}[y,\theta]}_{\text{Epistemic}} = \underbrace{H[\mathbb{E}[p]]}_{\text{Total}} - \underbrace{\mathbb{E}[H[p]]}_{\text{Aleatoric}}
 $$
 
 ### a. Total Uncertainty
 Entropy của xác suất trung bình.
 
 $$
-\mathcal{U}_{Total}
-=
--\sum_k \hat{p}_k \ln \hat{p}_k
+\mathcal{U}_{Total} = -\sum_k \hat{p}_k \ln \hat{p}_k
 $$
 
 *(Sự hỗn loạn của quyết định cuối)*
@@ -94,12 +88,7 @@ $$
 Trung bình entropy của từng điểm (sử dụng hàm Digamma $\psi$).
 
 $$
-\mathcal{U}_{Aleatoric}
-=
-\sum_k \hat{p}_k
-\left(
-\psi(S+1) - \psi(\alpha_k+1)
-\right)
+\mathcal{U}_{Aleatoric} = \sum_k \hat{p}_k \left( \psi(S+1) - \psi(\alpha_k+1) \right)
 $$
 
 *(Độ nhiễu của dữ liệu)*
@@ -109,11 +98,7 @@ $$
 Phần dư của phép trừ:
 
 $$
-\mathcal{U}_{Epistemic}
-=
-\mathcal{U}_{Total}
--
-\mathcal{U}_{Aleatoric}
+\mathcal{U}_{Epistemic} = \mathcal{U}_{Total} - \mathcal{U}_{Aleatoric}
 $$
 
 - Đo lường sự **phân tán của đám mây xác suất** -> Có thể dùng để **phát hiện dữ liệu lạ (OOD)**

@@ -53,15 +53,9 @@ Dự án này đề xuất **Evidential nnU-Net**, một giải pháp thay thế
 
 Chúng tôi tùy biến quy trình huấn luyện của nnU-Net thông qua class `EDLLoss` và `EDLTrainer`:
 
+
 $$
-\mathcal{L}_{\text{Total}}
-=
-\underbrace{\mathcal{L}_{\text{Bayes}}}_{\text{Accuracy}}
-+
-\lambda_t \cdot
-\underbrace{\mathcal{L}_{\text{KL}}}_{\text{Reliability}}
-+
-\underbrace{\mathcal{L}_{\text{Dice}}(\alpha / S)}_{\text{Segmentation}}
+\mathcal{L}_{\text{Total}} = \underbrace{\mathcal{L}_{\text{Bayes}}}_{\text{Accuracy}} + \lambda_t \cdot \underbrace{\mathcal{L}_{\text{KL}}}_{\text{Reliability}} + \underbrace{\mathcal{L}_{\text{Dice}}(\alpha / S)}_{\text{Segmentation}}
 $$
 
 * **Hàm kích hoạt bằng chứng:** Thay thế Softmax bằng Softplus để đảm bảo bằng chứng (evidence) thu thập được luôn là số dương.
@@ -69,7 +63,6 @@ $$
 1. **Expected Cross-Entropy (Data Fit Loss):** Tối ưu hóa dự đoán sát với Ground Truth dựa trên kỳ vọng của phân phối Dirichlet.
 2. **KL Divergence Penalty (với Annealing Step):** Phạt nghiêm khắc các dự đoán "tự tin thái quá" ở những vùng mô hình đoán sai, ép mô hình trở về phân phối Uniform khi gặp dữ liệu lạ.
 3. **Dice Loss:** Khắc phục tình trạng mất cân bằng lớp cực đoan trong ảnh y tế, tối ưu hóa trực tiếp độ trùng lặp không gian (spatial overlap).
-
 
 
 ### 2.3. Cơ chế Phân rã độ bất định

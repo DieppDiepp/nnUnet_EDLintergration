@@ -19,7 +19,7 @@ from src.visualizer import visualize_comparison
 def parse_args():
     parser = argparse.ArgumentParser(description="Chạy dự đoán cho BraTS EDL/Baseline")
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw'],
+                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw', 'edl_250'],
                         help="Chọn chế độ chạy")
     
     parser.add_argument('--fold', type=int, default=0)
@@ -96,7 +96,34 @@ def main():
                 print(f"{i+1:<8} | {case_id:<15} | {'Done':<40}")
 
             if CONFIG["save_2d_snapshot"]:
-                visualize_comparison(case_id, mri, gt, pred, unc_dict, CONFIG)
+                # --- [SỬA LẠI] CHUYỂN SANG TRỤC 2 (Mặt cắt ngang chuẩn BraTS) ---
+                AXIAL_AXIS = 0  
+
+                axes_to_sum = tuple([i for i in (0,1,2) if i != AXIAL_AXIS])
+                
+                # --- [SỬA Ở ĐÂY] Thêm "> 0" để chỉ đếm số lượng pixel u thực sự ---
+                tumor_distribution = np.sum(gt[0] > 0, axis=axes_to_sum)
+                
+                tumor_slices = np.where(tumor_distribution > 0)[0]
+
+                if len(tumor_slices) > 0:
+                    # 1. Vẽ lát cắt ngang giữa khối u (50% - Thường là bự nhất và đẹp nhất)
+                    idx_50 = tumor_slices[int(len(tumor_slices) * 0.50)]
+                    visualize_comparison(case_id, mri, gt, pred, unc_dict, CONFIG, 
+                                        slice_idx=idx_50, view_axis=AXIAL_AXIS, suffix_name="Axial_50pct_Center")
+                                        
+                    # 2. Vẽ lát cắt 25% (Đỉnh u)
+                    idx_25 = tumor_slices[int(len(tumor_slices) * 0.25)]
+                    visualize_comparison(case_id, mri, gt, pred, unc_dict, CONFIG, 
+                                        slice_idx=idx_25, view_axis=AXIAL_AXIS, suffix_name="Axial_25pct_Top")
+                                        
+                    # 3. Vẽ lát cắt 75% (Đáy u)
+                    idx_75 = tumor_slices[int(len(tumor_slices) * 0.75)]
+                    visualize_comparison(case_id, mri, gt, pred, unc_dict, CONFIG, 
+                                        slice_idx=idx_75, view_axis=AXIAL_AXIS, suffix_name="Axial_75pct_Bottom")
+                else:
+                    print(f"    ⚠️ Không tìm thấy khối u trong Ground Truth của {case_id}")
+
             
         except Exception as e:
             print(f"\n❌ Critical Error {case_id}: {e}")

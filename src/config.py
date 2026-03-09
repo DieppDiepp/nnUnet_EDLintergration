@@ -108,5 +108,14 @@ MODEL_CONFIGS = {
         "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs__nnUNetPlans__3d_fullres_RAW",
         "use_mirroring": False,
         "tile_step_size": 1.0
+    },
+
+    # --- 5. EDL 250 EPOCHS Có TTA, trượt 50% ---
+    "edl_250": {
+        "model_mode": "edl",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer_250epochs__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer_250epochs__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
     }
 }

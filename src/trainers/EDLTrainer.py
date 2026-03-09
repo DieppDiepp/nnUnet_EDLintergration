@@ -71,12 +71,16 @@ class EDLTrainer(nnUNetTrainer):
         else:
             self.num_epochs = 50
 
+        # Lưu checkpoint mỗi 50 epoch (mặc định của nnU-Net)
+        self.save_every = 50
+
     def _build_loss(self):
         num_classes = self.label_manager.num_segmentation_heads
-        
+        anneal_step = min(100, self.num_epochs)
+
         # Khởi tạo EDLLoss
-        loss = EDLLoss(num_classes=num_classes, annealing_step=50, lamb=1.0)
-        
+        loss = EDLLoss(num_classes=num_classes, annealing_step=anneal_step, lamb=1.0)
+
         if self.enable_deep_supervision:
             deep_supervision_scales = self._get_deep_supervision_scales()
             weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
@@ -114,3 +118,14 @@ class EDLTrainer(nnUNetTrainer):
         self.grad_scaler.update()
         
         return {'loss': l.detach().cpu().numpy()}
+    
+class EDLTrainer_250epochs(EDLTrainer):
+    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, 
+                device: torch.device = torch.device('cuda')):
+        super().__init__(plans, configuration, fold, dataset_json, device)
+        
+        # Chốt cứng 250 epoch, không cần truyền biến môi trường nnUNet_EPOCHS nữa
+        self.num_epochs = 250
+        
+        # Lưu checkpoint mỗi 50 epoch
+        self.save_every = 50

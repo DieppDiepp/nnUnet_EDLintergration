@@ -1,14 +1,45 @@
 """
-🎨 VISUALIZER MODULE (UPDATED V5 - HYBRID & ROBUST)
-Module chuyên trách vẽ biểu đồ, hỗ trợ cả chế độ Uncertainty đơn (cũ) và phân rã (mới).
-Tự động thích ứng dựa trên dữ liệu đầu vào.
+🎨 VISUALIZER MODULE (UPDATED V10 - MULTI-PLANES & SMART FOLDERS)
+- Hỗ trợ cắt theo 3 trục không gian (Axial, Coronal, Sagittal).
+- Tự động tạo thư mục riêng cho từng case_id.
 """
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+def hex_to_rgb(hex_str: str):
+    assert len(hex_str) == 6
+    return tuple(int(hex_str[i:i + 2], 16) for i in (0, 2, 4))
+
+def generate_nnunet_overlay(input_image: np.ndarray, segmentation: np.ndarray, overlay_intensity: float = 0.6):
+    image = np.copy(input_image)
+    if image.ndim == 2:
+        image = np.tile(image[:, :, None], (1, 1, 3))
+
+    img_min, img_max = image.min(), image.max()
+    if img_max > img_min:
+        image = (image - img_min) / (img_max - img_min) * 255.0
+    else:
+        image = np.zeros_like(image)
+
+    color_mapping = {1: "e6194B", 2: "3cb44b", 3: "ffe119"}
+    color_cycle = ["4363d8", "f58231", "911eb4", "42d4f4", "f032e6"]
+
+    uniques = np.sort(np.unique(segmentation))
+    uniques = uniques[uniques > 0]
+
+    for idx, l in enumerate(uniques):
+        hex_color = color_mapping.get(l, color_cycle[idx % len(color_cycle)])
+        rgb_color = np.array(hex_to_rgb(hex_color))
+        image[segmentation == l] += overlay_intensity * rgb_color
+
+    img_max = image.max()
+    if img_max > 0:
+        image = image / img_max * 255.0
+        
+    return image.astype(np.uint8)
+
 def calculate_dice_2d(pred_slice, gt_slice):
-    """Tính Dice Score 2D nhanh để hiển thị trên tiêu đề ảnh"""
     p = (pred_slice > 0).astype(np.float32)
     g = (gt_slice > 0).astype(np.float32)
     intersection = np.sum(p * g)
@@ -16,114 +47,140 @@ def calculate_dice_2d(pred_slice, gt_slice):
     if sum_areas == 0: return 1.0
     return (2.0 * intersection) / sum_areas
 
-def visualize_comparison(case_id, mri_data, gt_data, pred_data, uncertainty_data, config, slice_idx=None):
+def extract_2d_slice(data, axis, idx):
+    """Trích xuất mặt phẳng 2D và xoay ảnh cho thuận mắt"""
+    # Nếu data có kênh (C, X, Y, Z), bỏ kênh đi lấy lõi 3D
+    if data.ndim == 4: data = data[0] 
+    
+    if axis == 0:
+        slice_2d = data[idx, :, :]
+    elif axis == 1:
+        slice_2d = data[:, idx, :]
+    else: # axis == 2
+        slice_2d = data[:, :, idx]
+        
+    # Quay ảnh 90 độ thay vì transpose (.T) để não đứng thẳng chuẩn y khoa
+    return np.rot90(slice_2d)
+
+def visualize_comparison(case_id, mri_data, gt_data, pred_data, uncertainty_data, config, 
+                         slice_idx=None, view_axis=0, suffix_name="best"):
     """
-    Hàm vẽ đa năng:
-    - Nếu uncertainty_data là dict (có aleatoric/epistemic) -> Vẽ 5 hình.
-    - Nếu uncertainty_data là array (hoặc dict chỉ có total) -> Vẽ 4 hình (tương thích ngược).
+    view_axis: 0, 1, hoặc 2 (Trục không gian muốn cắt). Thường 0 hoặc 2 là Axial (tùy file gốc).
+    suffix_name: Tên hậu tố để lưu file (vd: 'axial_50pct', 'sagittal_worst').
     """
     
-    # --- 1. AUTO-SELECT SLICE (LOGIC CŨ - ROBUST) ---
-    # Tự động chọn lát cắt có khối u lớn nhất để hiển thị
+    # --- 1. AUTO-SELECT SLICE (Fallback) ---
     if slice_idx is None:
-        # Tính tổng pixel theo các trục để tìm slice có nhiều thông tin nhất
-        sums_gt = np.sum(gt_data, axis=(0, 1, 2))
-        sums_pred = np.sum(pred_data, axis=(0, 1))
-        
-        if sums_gt.max() > 0: slice_idx = np.argmax(sums_gt)
-        elif sums_pred.max() > 0: slice_idx = np.argmax(sums_pred)
-        else: slice_idx = gt_data.shape[3] // 2 # Fallback: Lấy giữa não
-
-    print(f"    📸 Drawing Slice: {slice_idx}")
+        sums_gt = np.sum(gt_data, axis=tuple([i for i in (0,1,2,3) if i != view_axis+1]))
+        slice_idx = np.argmax(sums_gt) if sums_gt.max() > 0 else gt_data.shape[view_axis+1] // 2 
 
     # --- 2. PREPARE BASIC DATA ---
-    # Xoay .T để ảnh hiển thị đúng chiều (người nhìn thẳng vào mặt)
-    img_slice = mri_data[0, :, :, slice_idx].T
-    gt_slice = gt_data[0, :, :, slice_idx].T 
-    pred_slice = pred_data[:, :, slice_idx].T
+    img_slice = extract_2d_slice(mri_data, view_axis, slice_idx)
+    gt_slice = extract_2d_slice(gt_data, view_axis, slice_idx)
+    pred_slice = extract_2d_slice(pred_data, view_axis, slice_idx)
     
     dice = calculate_dice_2d(pred_slice, gt_slice)
     ratio = (np.sum(pred_slice>0) / np.sum(gt_slice>0) * 100) if np.sum(gt_slice>0) > 0 else 0
 
-    # --- 3. DETERMINE MODE (LOGIC MỚI) ---
-    # Kiểm tra xem dữ liệu uncertainty là loại nào
+    # --- 3. DETERMINE UNCERTAINTY MODE ---
     is_decomposition = False
     if isinstance(uncertainty_data, dict):
         if "aleatoric" in uncertainty_data and "epistemic" in uncertainty_data:
             is_decomposition = True
-            aleatoric_slice = uncertainty_data["aleatoric"][:, :, slice_idx].T
-            epistemic_slice = uncertainty_data["epistemic"][:, :, slice_idx].T
+            aleatoric_slice = extract_2d_slice(uncertainty_data["aleatoric"], view_axis, slice_idx)
+            epistemic_slice = extract_2d_slice(uncertainty_data["epistemic"], view_axis, slice_idx)
+            total_slice = extract_2d_slice(uncertainty_data.get("total", np.zeros_like(pred_slice)), view_axis, slice_idx)
         elif "total" in uncertainty_data:
-            # Trường hợp dict nhưng chỉ có total
-            unc_slice = uncertainty_data["total"][:, :, slice_idx].T
+            unc_slice = extract_2d_slice(uncertainty_data["total"], view_axis, slice_idx)
         else:
-            # Fallback
             unc_slice = np.zeros_like(pred_slice)
     else:
-        # Trường hợp legacy (numpy array)
-        unc_slice = uncertainty_data[:, :, slice_idx].T
+        unc_slice = extract_2d_slice(uncertainty_data, view_axis, slice_idx)
 
-    # --- 4. PLOTTING ---
+    # --- 4. TẠO ẢNH OVERLAY ---
+    gt_overlay = generate_nnunet_overlay(img_slice, gt_slice)
+    pred_overlay = generate_nnunet_overlay(img_slice, pred_slice)
+
+    # --- 5. PLOTTING ---
     if is_decomposition:
-        # === CHẾ ĐỘ 5 CỘT (EDL MỚI) ===
-        fig, ax = plt.subplots(1, 5, figsize=config.get("figsize", (30, 6)))
-        plt.suptitle(f"EDL Decomposition: {case_id} (Slice {slice_idx})", fontsize=18, y=0.98)
+        fig, ax = plt.subplots(2, 3, figsize=(18, 10), gridspec_kw={'wspace': 0.1, 'hspace': 0.2})
+        
+        plt.suptitle(
+            f"EDL Analysis: {case_id} ({suffix_name})\n"
+            f"Dice Score: {dice:.1%} | Tumor Area Ratio: {ratio:.0f}%", 
+            fontsize=18, fontweight='bold', y=0.98
+        )
+
+        ax[0, 0].imshow(img_slice, cmap='gray', origin='lower', interpolation='nearest')
+        ax[0, 0].set_title("MRI Input", fontsize=15, fontweight='bold')
+        ax[0, 0].axis('off')
+
+        ax[0, 1].imshow(gt_overlay, origin='lower', interpolation='nearest')
+        ax[0, 1].set_title("Ground Truth", fontsize=15, fontweight='bold', color='green')
+        ax[0, 1].axis('off')
+
+        ax[0, 2].imshow(pred_overlay, origin='lower', interpolation='nearest')
+        ax[0, 2].set_title("AI Prediction", fontsize=15, fontweight='bold', color='blue')
+        ax[0, 2].axis('off')
+
+        im0 = ax[1, 0].imshow(total_slice, cmap='hot', origin='lower', interpolation='nearest')
+        ax[1, 0].set_title("Total Uncertainty", fontsize=15, fontweight='bold', color='red')
+        ax[1, 0].axis('off')
+        plt.colorbar(im0, ax=ax[1, 0], fraction=0.046, pad=0.04)
+
+        im1 = ax[1, 1].imshow(aleatoric_slice, cmap='hot', origin='lower', interpolation='nearest') 
+        ax[1, 1].set_title("Aleatoric Uncertainty", fontsize=15, fontweight='bold', color='darkorange')
+        ax[1, 1].axis('off')
+        plt.colorbar(im1, ax=ax[1, 1], fraction=0.046, pad=0.04)
+
+        im2 = ax[1, 2].imshow(epistemic_slice, cmap='hot', origin='lower', interpolation='nearest')
+        ax[1, 2].set_title("Epistemic Uncertainty", fontsize=15, fontweight='bold', color='purple')
+        ax[1, 2].axis('off')
+        plt.colorbar(im2, ax=ax[1, 2], fraction=0.046, pad=0.04)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.93])
     else:
-        # === CHẾ ĐỘ 4 CỘT (CŨ/BASIC) ===
-        fig, ax = plt.subplots(1, 4, figsize=config.get("figsize", (24, 6)))
-        plt.suptitle(f"Segmentation Result: {case_id} (Slice {slice_idx})", fontsize=16, y=0.98)
+        fig, ax = plt.subplots(1, 4, figsize=(20, 6), gridspec_kw={'wspace': 0.1})
+        plt.suptitle(
+            f"Segmentation Result: {case_id} ({suffix_name})\n"
+            f"Dice: {dice:.1%} | Area: {ratio:.0f}%", 
+            fontsize=16, fontweight='bold', y=1.05
+        )
 
-    # --- Cột 1: MRI ---
-    ax[0].imshow(img_slice, cmap='gray', origin='lower')
-    ax[0].set_title("MRI Input", fontsize=14, fontweight='bold')
-    ax[0].axis('off')
+        ax[0].imshow(img_slice, cmap='gray', origin='lower', interpolation='nearest')
+        ax[0].set_title("MRI Input", fontsize=14, fontweight='bold')
+        ax[0].axis('off')
 
-    # --- Cột 2: Ground Truth ---
-    ax[1].imshow(img_slice, cmap='gray', origin='lower', alpha=0.6)
-    if np.any(gt_slice): 
-        ax[1].imshow(gt_slice, cmap='Greens', origin='lower', alpha=0.6, interpolation='nearest')
-    ax[1].set_title("Ground Truth", fontsize=14, fontweight='bold', color='green')
-    ax[1].axis('off')
+        ax[1].imshow(gt_overlay, origin='lower', interpolation='nearest')
+        ax[1].set_title("Ground Truth", fontsize=14, fontweight='bold', color='green')
+        ax[1].axis('off')
 
-    # --- Cột 3: Prediction ---
-    ax[2].imshow(img_slice, cmap='gray', origin='lower', alpha=0.6)
-    if np.any(pred_slice): 
-        ax[2].imshow(pred_slice, cmap='jet', origin='lower', alpha=0.5, interpolation='nearest')
-    ax[2].set_title(f"AI Prediction\nDice: {dice:.1%} | Area: {ratio:.0f}%", fontsize=14, fontweight='bold', color='blue')
-    ax[2].axis('off')
+        ax[2].imshow(pred_overlay, origin='lower', interpolation='nearest')
+        ax[2].set_title("AI Prediction", fontsize=14, fontweight='bold', color='blue')
+        ax[2].axis('off')
 
-    if is_decomposition:
-        # --- Cột 4: Aleatoric (Nhiễu dữ liệu) ---
-        # Không set vmin/vmax cứng để thấy rõ độ tương phản
-        im1 = ax[3].imshow(aleatoric_slice, cmap='hot', origin='lower') 
-        ax[3].set_title("Aleatoric (Data Noise)\n(Viền khối u, ảnh mờ)", fontsize=14, fontweight='bold', color='orange')
-        ax[3].axis('off')
-        plt.colorbar(im1, ax=ax[3], fraction=0.046, pad=0.04)
-
-        # --- Cột 5: Epistemic (Mô hình không biết) ---
-        im2 = ax[4].imshow(epistemic_slice, cmap='hot', origin='lower')
-        ax[4].set_title("Epistemic (Model Uncertainty)\n(Vùng lạ, hiếm gặp)", fontsize=14, fontweight='bold', color='red')
-        ax[4].axis('off')
-        plt.colorbar(im2, ax=ax[4], fraction=0.046, pad=0.04)
-    else:
-        # --- Cột 4 (Cũ): Total Uncertainty ---
-        # Code cũ set vmax=1.0, giữ nguyên để tương thích
-        im = ax[3].imshow(unc_slice, cmap='hot', origin='lower', vmin=0, vmax=1.0)
+        im = ax[3].imshow(unc_slice, cmap='hot', origin='lower', vmin=0, vmax=1.0, interpolation='nearest')
         ax[3].set_title("Uncertainty Map", fontsize=14, fontweight='bold', color='red')
         ax[3].axis('off')
         plt.colorbar(im, ax=ax[3], fraction=0.046, pad=0.04)
+        
+        plt.tight_layout()
 
-    # --- 5. SAVE & SHOW ---
+    # --- 6. TẠO FOLDER ĐỘC LẬP & LƯU FILE ---
     try:
         if config.get("save_2d_snapshot", False):
-            os.makedirs(config["output_folder"], exist_ok=True)
-            save_path = os.path.join(config["output_folder"], f"{case_id}_slice{slice_idx}_viz.png")
-            plt.savefig(save_path, bbox_inches='tight', dpi=100)
-            print(f"    ✅ Saved Snapshot: {save_path}")
+            # Tạo thư mục con có tên là case_id (VD: output/BRATS_004/)
+            case_folder = os.path.join(config["output_folder"], case_id)
+            os.makedirs(case_folder, exist_ok=True)
+            
+            # Lưu file vào thư mục đó
+            save_path = os.path.join(case_folder, f"{suffix_name}.png")
+            plt.savefig(save_path, bbox_inches='tight', dpi=200, facecolor='white')
+            print(f"    ✅ Saved: {save_path}")
         
         if config.get("show_on_screen", False):
             plt.show()
     except Exception as e:
         print(f"⚠️ Error saving/showing image: {e}")
     finally:
-        plt.close() # Quan trọng: Giải phóng bộ nhớ để không bị tràn RAM khi chạy nhiều ảnh
+        plt.close()

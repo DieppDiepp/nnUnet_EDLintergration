@@ -187,36 +187,35 @@ class EDLInferenceEngine:
 
         if model_mode == "edl":
             # --- TÍNH TOÁN UNCERTAINTY DECOMPOSITION ---
-            # Công thức dựa trên Information Theory (Entropy của phân phối Dirichlet)
-            
-            # a. Tính tham số Dirichlet (alpha)
             evidence = F.softplus(pred_logits)
             alpha = evidence + 1
             S = torch.sum(alpha, dim=0, keepdim=True) # Tổng sức mạnh bằng chứng
             probs = alpha / S                         # Xác suất kỳ vọng
             
+            # [CHÈN THÊM] Lấy Confidence cho EDL (Xác suất cao nhất)
+            confidence_map = torch.max(probs, dim=0)[0].cpu().numpy()
+            
             # b. Total Uncertainty (Entropy)
-            # H(p) = - sum(p * log(p))
-            # Cộng thêm 1e-7 để tránh lỗi log(0) -> NaN
             total_unc = -torch.sum(probs * torch.log(probs + 1e-7), dim=0)
             
             # c. Aleatoric Uncertainty (Expected Entropy)
-            # E[H(p)] approx sum(p * (digamma(S+1) - digamma(alpha+1)))
             digamma_S = torch.digamma(S + 1)
             digamma_alpha = torch.digamma(alpha + 1)
             aleatoric_unc = torch.sum(probs * (digamma_S - digamma_alpha), dim=0)
             
             # d. Epistemic Uncertainty (Mutual Information)
-            # I = Total - Aleatoric
             epistemic_unc = total_unc - aleatoric_unc
             
             # e. Chuẩn hóa về Numpy & Clamp giá trị
-            # Clamp min=0 để tránh sai số dấu chấm động làm ra số âm cực nhỏ
             unc_dict = {
                 "total": torch.clamp(total_unc, min=0).cpu().numpy(),
                 "aleatoric": torch.clamp(aleatoric_unc, min=0).cpu().numpy(),
                 "epistemic": torch.clamp(epistemic_unc, min=0).cpu().numpy()
             }
+        else:
+            # Lấy Confidence cho Baseline (Dùng Softmax thông thường)
+            probs = F.softmax(pred_logits, dim=0)
+            confidence_map = torch.max(probs, dim=0)[0].cpu().numpy()
         
         # Xử lý seg nếu không có GT (tạo ảnh đen để visualize không lỗi)
         if seg is None: seg = np.zeros((1, *segmentation.shape))
@@ -237,6 +236,10 @@ class EDLInferenceEngine:
                 
                 # Các file cơ bản (Luôn lưu)
                 self.save_nifti(segmentation, original_affine, os.path.join(out_dir, "prediction.nii.gz"))
+                
+                # Dòng lưu file Confidence
+                self.save_nifti(confidence_map, original_affine, os.path.join(out_dir, "confidence.nii.gz"))
+                
                 self.save_nifti(seg[0], original_affine, os.path.join(out_dir, "ground_truth.nii.gz"))
                 self.save_nifti(data[0], original_affine, os.path.join(out_dir, "mri_crop.nii.gz"))
                 

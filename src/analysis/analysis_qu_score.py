@@ -11,20 +11,19 @@ from tqdm import tqdm
 import pandas as pd
 import warnings
 
-# --- SETUP PATH ---
+# --- SETUP PATH (Lùi 2 bước) ---
 try:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    if current_dir not in sys.path: sys.path.append(current_dir)
-    # Thêm root project
-    project_root = os.path.dirname(current_dir)
-    if project_root not in sys.path: sys.path.append(project_root)
+    src_dir = os.path.dirname(current_dir)
+    project_root = os.path.dirname(src_dir)
+    if project_root not in sys.path: sys.path.insert(0, project_root)
 except NameError: pass
 
 # --- IMPORTS ---
 try:
-    from .src.config import BASE_CONFIG, MODEL_CONFIGS
-    from .src.analysis.utils import load_nifti_safe, get_binary_mask
-    from .src.analysis.metrics import compute_metrics_by_thresholds, calculate_auc_score
+    from src.config import BASE_CONFIG, MODEL_CONFIGS
+    from src.analysis.utils import load_nifti_safe, get_binary_mask
+    from src.analysis.metrics import compute_metrics_by_thresholds, calculate_auc_score
     # Lưu ý: Cần cập nhật plotting.py để hỗ trợ vẽ theo threshold nếu muốn, 
     # nhưng ở đây ta sẽ dùng matplotlib trực tiếp cho đơn giản hoặc cập nhật sau.
     # Tạm thời ta sẽ vẽ trực tiếp trong file này để kiểm soát tốt hơn.
@@ -205,7 +204,7 @@ def run_analysis_pipeline(mode='edl', n_cases=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'edl_raw'])
+                        choices=['edl', 'edl_raw', 'edl_250'])
     
     parser.add_argument('--limit', type=int, default=0)
     if 'ipykernel' in sys.modules: args = parser.parse_args([])

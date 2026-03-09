@@ -59,8 +59,8 @@ def compute_ece(confidences, accuracies, num_bins=15):
             
     return ece * 100.0, bin_data # Nhân 100 để báo cáo theo %
 
-def run_ece_pipeline(mode='edl', n_cases=None):
-    print(f"🚀 BẮT ĐẦU TÍNH ECE | CHẾ ĐỘ: {mode.upper()}")
+def run_ece_pipeline(mode='edl', n_cases=None, num_bins=10):
+    print(f"🚀 BẮT ĐẦU TÍNH ECE | CHẾ ĐỘ: {mode.upper()} | BINS: {num_bins}")
     
     try:
         model_cfg = MODEL_CONFIGS[mode]
@@ -109,36 +109,35 @@ def run_ece_pipeline(mode='edl', n_cases=None):
     if not all_confidences:
         print("❌ Không có dữ liệu để tính ECE. Hãy chắc chắn file confidence.nii.gz đã được tạo."); return
 
-    print("\n⏳ Đang tính toán ECE tổng thể (Gom toàn bộ pixel)...")
+    print(f"\n⏳ Đang tính toán ECE tổng thể (Gom toàn bộ pixel) với {num_bins} bins...")
     # Nối tất cả mảng 1D lại với nhau (có thể tốn RAM nếu dataset lớn, Colab dư sức xử lý)
     global_confidences = np.concatenate(all_confidences)
     global_accuracies = np.concatenate(all_accuracies)
 
-    ece_score, bin_data = compute_ece(global_confidences, global_accuracies, num_bins=15)
+    ece_score, bin_data = compute_ece(global_confidences, global_accuracies, num_bins=num_bins)
 
     # --- VẼ BIỂU ĐỒ ĐỘ TIN CẬY (RELIABILITY DIAGRAM) ---
     plt.figure(figsize=(8, 8))
-    
-    # Vẽ đường hoàn hảo (Perfect Calibration)
     plt.plot([0, 1], [0, 1], 'k--', label='Perfect Calibration')
     
-    # Lấy tọa độ x, y để vẽ
     if bin_data:
         xs = [b['bin_center'] for b in bin_data]
         ys = [b['accuracy'] for b in bin_data]
-        # Vẽ các cột (Gap)
-        plt.bar(xs, ys, width=1/15, alpha=0.5, edgecolor='black', color='blue', label='Model Accuracy')
-        # Vẽ khoảng lệch (Expected Gap)
+        
+        # --- SỬA LẠI ĐỘ RỘNG CỘT (width = 1/num_bins) ---
+        bar_width = 1.0 / num_bins
+        plt.bar(xs, ys, width=bar_width, alpha=0.5, edgecolor='black', color='blue', label='Model Accuracy')
         plt.bar(xs, [b['confidence'] - b['accuracy'] for b in bin_data], 
-                bottom=ys, width=1/15, alpha=0.3, color='red', hatch='//', label='Calibration Gap')
+                bottom=ys, width=bar_width, alpha=0.3, color='red', hatch='//', label='Calibration Gap')
 
     plt.xlabel('Confidence', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
-    plt.title(f'Reliability Diagram\nExpected Calibration Error (ECE) = {ece_score:.3f}%', fontsize=14)
+    plt.title(f'Reliability Diagram ({num_bins} Bins)\nExpected Calibration Error (ECE) = {ece_score:.3f}%', fontsize=14)
+
     plt.legend(loc='upper left')
     plt.grid(True, alpha=0.3)
     
-    plt.savefig(os.path.join(output_dir, "reliability_diagram.png"), dpi=300)
+    plt.savefig(os.path.join(output_dir, f"reliability_diagram_{num_bins}bins.png"), dpi=300)
     plt.close()
 
     # --- IN KẾT QUẢ ---
@@ -150,14 +149,20 @@ def run_ece_pipeline(mode='edl', n_cases=None):
     
     # Lưu kết quả
     df = pd.DataFrame([{"Metric": "Global ECE (%)", "Value": ece_score}])
-    df.to_csv(os.path.join(output_dir, "final_ece_score.csv"), index=False)
+    df.to_csv(os.path.join(output_dir, f"final_ece_score_{num_bins}bins.csv"), index=False)
     print(f"✅ Đã lưu kết quả tại: {output_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', type=str, default='edl', choices=['edl', 'edl_raw'])
+    # --- MỞ KHÓA CHO TẤT CẢ CÁC MODE ---
+    parser.add_argument('--mode', type=str, default='edl', 
+                        choices=['edl', 'edl_raw', 'baseline', 'baseline_raw', 'edl_250'])
+    
     parser.add_argument('--limit', type=int, default=0)
+
+    parser.add_argument('--bins', type=int, default=10, help="Số lượng bins để chia ECE (Thường dùng 10 hoặc 15)")
+
     if 'ipykernel' in sys.modules: args = parser.parse_args([])
     else: args = parser.parse_args()
-    
-    run_ece_pipeline(mode=args.mode, n_cases=args.limit)
+
+    run_ece_pipeline(mode=args.mode, n_cases=args.limit, num_bins=args.bins)

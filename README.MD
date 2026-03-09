@@ -1,6 +1,4 @@
-# Phân rã độ bất định bảo toàn độ chính xác cho phân đoạn khối u não với Evidential nnU-Net
-
-*(Accuracy-Preserving Uncertainty Decomposition for Brain Tumor Segmentation with Evidential nnU-Net)*
+# Evidential nnU-Net: Highly Accurate Brain Tumor Segmentation with Reliable Uncertainty Decomposition
 
 Repository này chứa mã nguồn và tài liệu thực nghiệm cho phương pháp tích hợp **Evidential Deep Learning (EDL)** vào khung làm việc **nnU-Net v2** nhằm giải quyết bài toán phân đoạn khối u não đa phương thức trên tập dữ liệu **BraTS 2020**.
 

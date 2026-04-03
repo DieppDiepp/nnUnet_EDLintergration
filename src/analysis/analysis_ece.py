@@ -59,12 +59,14 @@ def compute_ece(confidences, accuracies, num_bins=15):
             
     return ece * 100.0, bin_data # Nhân 100 để báo cáo theo %
 
-def run_ece_pipeline(mode='edl', n_cases=None, num_bins=10):
+def run_ece_pipeline(mode='edl', n_cases=None, num_bins=10, eval_set='test'):
     print(f"🚀 BẮT ĐẦU TÍNH ECE | CHẾ ĐỘ: {mode.upper()} | BINS: {num_bins}")
     
     try:
         model_cfg = MODEL_CONFIGS[mode]
-        base_folder = model_cfg["output_folder"]
+
+        base_folder = os.path.join(model_cfg["output_folder"], eval_set)
+
         nifti_dir = os.path.join(base_folder, BASE_CONFIG.get("dir_nifti", "3d_nifti"))
         output_dir = os.path.join(base_folder, "analysis_ece_results") 
         os.makedirs(output_dir, exist_ok=True)
@@ -156,13 +158,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # --- MỞ KHÓA CHO TẤT CẢ CÁC MODE ---
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'edl_raw', 'baseline', 'baseline_raw', 'edl_250'])
+                        choices=['edl', 'edl_raw', 'baseline', 'baseline_raw', 'edl_250', 'baseline_250_fixed_split', 'edl_250_fixed_split'])
     
     parser.add_argument('--limit', type=int, default=0)
 
     parser.add_argument('--bins', type=int, default=10, help="Số lượng bins để chia ECE (Thường dùng 10 hoặc 15)")
 
+    parser.add_argument('--eval_set', type=str, default='test', choices=['val', 'test', 'other'],
+                        help="Chọn thư mục chứa kết quả inference (val, test, hoặc other)")
+    
     if 'ipykernel' in sys.modules: args = parser.parse_args([])
     else: args = parser.parse_args()
 
-    run_ece_pipeline(mode=args.mode, n_cases=args.limit, num_bins=args.bins)
+    run_ece_pipeline(mode=args.mode, n_cases=args.limit, num_bins=args.bins, eval_set=args.eval_set)

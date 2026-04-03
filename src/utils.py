@@ -52,6 +52,24 @@ def get_validation_cases(split_file, fold=0):
     print(f"📂 Đã load danh sách Validation Fold {fold}: {len(val_keys)} ca.")
     return val_keys
 
+def get_test_cases(test_file, fold=0):
+    """
+    Lấy danh sách test từ file json theo dạng dictionary {"fold_0": [...], ...}.
+    """
+    if not os.path.exists(test_file):
+        raise FileNotFoundError(f"❌ Không tìm thấy file test tại: {test_file}.")
+    
+    with open(test_file, 'r') as f:
+        test_splits = json.load(f)
+    
+    fold_key = f"fold_{fold}"
+    if fold_key not in test_splits:
+        raise ValueError(f"❌ Key '{fold_key}' không tồn tại trong file test json!")
+        
+    test_cases = test_splits[fold_key]
+    print(f"📂 Đã load danh sách Test ({fold_key}): {len(test_cases)} ca.")
+    return test_cases
+
 def calculate_dice_2d(pred_slice, gt_slice):
     """
     Tính Dice Score 2D nhanh (Dùng cho visualizer).

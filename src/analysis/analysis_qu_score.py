@@ -45,15 +45,18 @@ def normalize_uncertainty(unc_map):
     # Công thức Min-Max Scaling * 100
     return ((unc_map - u_min) / (u_max - u_min)) * 100.0
 
-def run_analysis_pipeline(mode='edl', n_cases=None):
-    print(f"🚀 STARTING ANALYSIS (QU-BRATS STANDARD 0-100) | MODE: {mode.upper()}")
+def run_analysis_pipeline(mode='edl', n_cases=None, eval_set='test'):
+    print(f"🚀 STARTING ANALYSIS (QU-BRATS) | MODE: {mode.upper()} | SET: {eval_set.upper()}")
     
     # 1. Config & Paths
     try:
         model_cfg = MODEL_CONFIGS[mode]
-        base_folder = model_cfg["output_folder"]
+        
+        # --- 2. SỬA ĐƯỜNG DẪN Ở ĐÂY: Nối thêm eval_set vào sau output_folder ---
+        base_folder = os.path.join(model_cfg["output_folder"], eval_set) 
+        
         nifti_dir = os.path.join(base_folder, BASE_CONFIG.get("dir_nifti", "3d_nifti"))
-        output_dir = os.path.join(base_folder, "analysis_qu_brats_v13") # Version mới
+        output_dir = os.path.join(base_folder, "analysis_qu_brats_v13") 
         os.makedirs(output_dir, exist_ok=True)
         
         if not os.path.exists(nifti_dir): raise FileNotFoundError(f"Input missing: {nifti_dir}")
@@ -204,10 +207,16 @@ def run_analysis_pipeline(mode='edl', n_cases=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'edl_raw', 'edl_250'])
+                        choices=['edl', 'edl_raw', 'edl_250', 'edl_250_fixed_split'])
     
     parser.add_argument('--limit', type=int, default=0)
+    
+    # --- THÊM DÒNG NÀY: Khai báo thư mục cần phân tích ---
+    parser.add_argument('--eval_set', type=str, default='test', choices=['val', 'test', 'other'],
+                        help="Chọn thư mục chứa kết quả inference (val, test, hoặc other)")
+    
     if 'ipykernel' in sys.modules: args = parser.parse_args([])
     else: args = parser.parse_args()
     
-    run_analysis_pipeline(mode=args.mode, n_cases=args.limit)
+    # --- TRUYỀN THÊM BIẾN eval_set VÀO HÀM ---
+    run_analysis_pipeline(mode=args.mode, n_cases=args.limit, eval_set=args.eval_set)

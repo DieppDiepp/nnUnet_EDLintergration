@@ -12,19 +12,23 @@ import argparse
 sys.path.append("/content/drive/MyDrive/NCKH/nnUnet")
 
 from src.config import BASE_CONFIG, MODEL_CONFIGS
-from src.utils import get_case_list, get_validation_cases, calculate_metric_per_class
+from src.utils import get_case_list, get_validation_cases, get_test_cases, calculate_metric_per_class
 from src.edl_engine import EDLInferenceEngine
 from src.visualizer import visualize_comparison 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Chạy dự đoán cho BraTS EDL/Baseline")
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw', 'edl_250'],
+                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw', 'edl_250', 'edl_250_fixed_split', 'baseline_250_fixed_split'],
                         help="Chọn chế độ chạy")
     
-    parser.add_argument('--fold', type=int, default=0)
+    parser.add_argument('--fold', type=int, default=0, help="Fold của trọng số mô hình cần load")
+
+    parser.add_argument('--test_fold', type=int, default=0, help="Key fold_X trong file fixed_test.json để lấy data")
+
     parser.add_argument('--run_mode', type=str, default='validation_split', 
-                        choices=['validation_split', 'range', 'random'])
+                        choices=['validation_split', 'range', 'random', 'fixed_test'],
+                        help="Chọn cách lấy danh sách cases để chạy")
                         
     return parser.parse_args()
 
@@ -36,6 +40,7 @@ def main():
     CONFIG = BASE_CONFIG.copy()
     CONFIG.update(MODEL_CONFIGS[args.mode])
     CONFIG["fold"] = args.fold # Override fold
+    CONFIG["test_fold"] = args.test_fold
     CONFIG["run_mode"] = args.run_mode # Override run mode
     CONFIG["checkpoint_path"] = CONFIG["checkpoint_path"].format(fold=args.fold)
 
@@ -54,14 +59,47 @@ def main():
         available_set = set(all_cases_on_disk)
         cases = [c for c in cases if c in available_set]
         print(f"⚙️ Mode: VALIDATION SPLIT -> Found {len(cases)} cases (Filtered).")
+
     elif run_mode == "range":
         start, end = CONFIG.get("test_range", [0, 5])
         cases = all_cases_on_disk[start:end]
         print(f"⚙️ Mode: RANGE [{start}:{end}] -> {len(cases)} cases.")
+
+    elif run_mode == "fixed_test":
+        test_file_path = CONFIG.get("test_file")
+        
+        # Lấy Fold của Model (để in log cho rõ ràng)
+        model_fold = CONFIG.get("fold")
+        
+        # Lấy Fold của Dữ liệu Test (Mặc định lấy 0 - tức là 74 ca gốc của chúng ta)
+        test_fold = CONFIG.get("test_fold") 
+        
+        # Đọc danh sách Test theo đúng test_fold
+        cases = get_test_cases(test_file_path, fold=test_fold)
+        
+        available_set = set(all_cases_on_disk)
+        cases = [c for c in cases if c in available_set]
+        
+        print(f"⚙️ Mode: FIXED TEST | Model (Weights): Fold {model_fold} | Data: Test Fold {test_fold} -> {len(cases)} cases.")
+
     else:
         num = CONFIG.get("num_random", 5)
         cases = random.sample(all_cases_on_disk, min(len(all_cases_on_disk), num))
         print(f"⚙️ Mode: RANDOM -> {len(cases)} cases.")
+
+    if run_mode == "fixed_test":
+        sub_folder_name = "test"
+    elif run_mode == "validation_split":
+        sub_folder_name = "val"
+    else:
+        sub_folder_name = "other"
+
+    # Cập nhật đè đường dẫn output trong CONFIG
+    CONFIG["output_folder"] = os.path.join(CONFIG["output_folder"], sub_folder_name)
+    os.makedirs(CONFIG["output_folder"], exist_ok=True)
+    
+    print(f"📁 Dữ liệu sẽ được lưu tại: {CONFIG['output_folder']}")
+    # ---------------------------
 
     # 4. Loop
     all_metrics = []

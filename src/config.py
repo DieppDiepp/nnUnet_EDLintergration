@@ -9,6 +9,7 @@ BASE_CONFIG = {
     "image_folder":     "/content/nnUNet_raw/Dataset101_BraTS2020/imagesTr",
     "label_folder":     "/content/nnUNet_raw/Dataset101_BraTS2020/labelsTr",
     "split_file":       "/content/nnUNet_preprocessed/Dataset101_BraTS2020/splits_final.json", # File JSON chứa danh sách train/val split theo fold.
+    "test_file":        "/content/drive/MyDrive/NCKH/nnUnet/data/experiments/fixed_test.json", # File JSON chứa danh sách test cố định (74 ca) theo fold.
     
     # Feature Toggles
     "save_2d_snapshot": True, # Có lưu ảnh chụp lát cắt 2D (file .png) để xem nhanh không.
@@ -22,6 +23,7 @@ BASE_CONFIG = {
     # Run Settings
     "run_mode":         "validation_split", # "validation_split" - chạy full tập test | "range" - lấy bao nhiêu ca ra chạy thử | "random" - lấy ngẫu nhiên bao nhiêu ca
     "fold":             0,
+    "test_fold":        0, # Chỉ áp dụng khi run_mode = "fixed_test", để chọn fold nào của test set (mặc định là fold_0 - tức là 74 ca gốc của chúng ta)
     "test_range":       [0, 5],
     "num_random":       5,
     "show_on_screen":   False,
@@ -115,6 +117,24 @@ MODEL_CONFIGS = {
         "model_mode": "edl",
         "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer_250epochs__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
         "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer_250epochs__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
+    },
+
+    # --- 6. EDL 250 EPOCHS Fixed Split ---
+    "edl_250_fixed_split": {
+        "model_mode": "edl",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer_250epochs_FixedSplit__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer_250epochs_FixedSplit__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
+    },
+
+    # --- 7. BASELINE 250 EPOCHS Fixed SPLIT ---
+    "baseline_250_fixed_split": {
+        "model_mode": "baseline",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_250epochs_FixedSplit__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_250epochs_FixedSplit__nnUNetPlans__3d_fullres",
         "use_mirroring": True,
         "tile_step_size": 0.5
     }

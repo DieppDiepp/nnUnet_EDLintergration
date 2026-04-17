@@ -49,6 +49,8 @@ def calculate_dice_2d(pred_slice, gt_slice):
 
 def extract_2d_slice(data, axis, idx):
     """Trích xuất mặt phẳng 2D và xoay ảnh cho thuận mắt"""
+    if data is None: return None # <--- Thêm dòng bảo vệ này
+    
     # Nếu data có kênh (C, X, Y, Z), bỏ kênh đi lấy lõi 3D
     if data.ndim == 4: data = data[0] 
     
@@ -85,12 +87,13 @@ def visualize_comparison(case_id, mri_data, gt_data, pred_data, uncertainty_data
     # --- 3. DETERMINE UNCERTAINTY MODE ---
     is_decomposition = False
     if isinstance(uncertainty_data, dict):
-        if "aleatoric" in uncertainty_data and "epistemic" in uncertainty_data:
+        # Dùng .get() is not None để đảm bảo giá trị bên trong thực sự tồn tại
+        if uncertainty_data.get("aleatoric") is not None and uncertainty_data.get("epistemic") is not None:
             is_decomposition = True
             aleatoric_slice = extract_2d_slice(uncertainty_data["aleatoric"], view_axis, slice_idx)
             epistemic_slice = extract_2d_slice(uncertainty_data["epistemic"], view_axis, slice_idx)
             total_slice = extract_2d_slice(uncertainty_data.get("total", np.zeros_like(pred_slice)), view_axis, slice_idx)
-        elif "total" in uncertainty_data:
+        elif uncertainty_data.get("total") is not None:
             unc_slice = extract_2d_slice(uncertainty_data["total"], view_axis, slice_idx)
         else:
             unc_slice = np.zeros_like(pred_slice)

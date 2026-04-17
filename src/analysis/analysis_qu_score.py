@@ -207,7 +207,7 @@ def run_analysis_pipeline(mode='edl', n_cases=None, eval_set='test'):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'edl_raw', 'edl_250', 'edl_250_fixed_split'])
+                        choices=['edl', 'edl_raw', 'edl_250', 'edl_250_fixed_split', 'edl_50_fixed_split'])
     
     parser.add_argument('--limit', type=int, default=0)
     

@@ -137,5 +137,24 @@ MODEL_CONFIGS = {
         "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_250epochs_FixedSplit__nnUNetPlans__3d_fullres",
         "use_mirroring": True,
         "tile_step_size": 0.5
+    },
+
+    # --- 8. EDL 50 EPOCHS Fixed Split ---
+    "edl_50_fixed_split": {
+        "model_mode": "edl",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/EDLTrainer_50epochs_FixedSplit__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/EDLTrainer_50epochs_FixedSplit__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
+    },
+
+    # --- 9. Baseline 50 EPOCHS Fixed Split ---
+    "baseline_50_fixed_split": {
+        "model_mode": "baseline",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs_FixedSplit__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_50epochs_FixedSplit__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
     }
+
 }

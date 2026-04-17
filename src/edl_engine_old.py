@@ -175,45 +175,47 @@ class EDLInferenceEngine:
         # --- 4. LOGIC PHÂN NHÁNH (EDL vs BASELINE) ---
         segmentation = torch.argmax(pred_logits, dim=0).cpu().numpy()
         
-        # Lấy mode từ config (Kiểm tra xem có chữ 'edl' trong tên mode không)
-        model_mode = self.config.get("model_mode", "edl").lower()
-        is_edl = "edl" in model_mode
+        # Khởi tạo dict rỗng (đen sì) để code Visualizer không bị lỗi
+        unc_dict = {
+            "total": np.zeros(segmentation.shape),
+            "aleatoric": np.zeros(segmentation.shape),
+            "epistemic": np.zeros(segmentation.shape)
+        }
 
-        if is_edl:
-            # --- TÍNH TOÁN UNCERTAINTY DECOMPOSITION (EDL) ---
+        # Lấy mode từ config, mặc định là 'edl' nếu không khai báo
+        model_mode = self.config.get("model_mode", "edl")
+
+        if model_mode == "edl":
+            # --- TÍNH TOÁN UNCERTAINTY DECOMPOSITION ---
             evidence = F.softplus(pred_logits)
             alpha = evidence + 1
-            S = torch.sum(alpha, dim=0, keepdim=True) 
-            probs = alpha / S 
+            S = torch.sum(alpha, dim=0, keepdim=True) # Tổng sức mạnh bằng chứng
+            probs = alpha / S                         # Xác suất kỳ vọng
             
+            # [CHÈN THÊM] Lấy Confidence cho EDL (Xác suất cao nhất)
             confidence_map = torch.max(probs, dim=0)[0].cpu().numpy()
             
+            # b. Total Uncertainty (Entropy)
             total_unc = -torch.sum(probs * torch.log(probs + 1e-7), dim=0)
             
+            # c. Aleatoric Uncertainty (Expected Entropy)
             digamma_S = torch.digamma(S + 1)
             digamma_alpha = torch.digamma(alpha + 1)
             aleatoric_unc = torch.sum(probs * (digamma_S - digamma_alpha), dim=0)
             
+            # d. Epistemic Uncertainty (Mutual Information)
             epistemic_unc = total_unc - aleatoric_unc
             
+            # e. Chuẩn hóa về Numpy & Clamp giá trị
             unc_dict = {
                 "total": torch.clamp(total_unc, min=0).cpu().numpy(),
                 "aleatoric": torch.clamp(aleatoric_unc, min=0).cpu().numpy(),
                 "epistemic": torch.clamp(epistemic_unc, min=0).cpu().numpy()
             }
         else:
-            # --- TÍNH TOÁN PREDICTIVE ENTROPY (BASELINE) ---
+            # Lấy Confidence cho Baseline (Dùng Softmax thông thường)
             probs = F.softmax(pred_logits, dim=0)
             confidence_map = torch.max(probs, dim=0)[0].cpu().numpy()
-            
-            # Cột 4 của Baseline: Tính Shannon Entropy $H = -\sum p \cdot \log(p)$
-            total_unc = -torch.sum(probs * torch.log(probs + 1e-7), dim=0)
-            
-            unc_dict = {
-                "total": total_unc.cpu().numpy(),
-                "aleatoric": None, # Gán None để Plotting.py biết đây là Baseline
-                "epistemic": None  # và tự động co lại thành 4 cột
-            }
         
         # Xử lý seg nếu không có GT (tạo ảnh đen để visualize không lỗi)
         if seg is None: seg = np.zeros((1, *segmentation.shape))

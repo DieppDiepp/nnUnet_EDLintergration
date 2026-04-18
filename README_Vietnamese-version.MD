@@ -176,10 +176,11 @@ Kết quả của nhóm được đặt lên bàn cân với các kiến trúc t
 | ADHDC-Net | 89.750 | 83.310 | 78.010 | 83.690 | Tự chia (Custom split) |
 | nnU-Net Ensemble | 91.000 | 84.400 | 77.600 | 84.800 | Tự chia (Custom split) |
 | H2NF-Net | 91.300 | 85.500 | 78.800 | 86.200 | Tự chia (Custom split) |
-| Standard nnU-Net v1 | 91.070 | 87.970 | 81.370 | 87.070 | 5-Fold CV |
+| Standard nnU-Net v1 | 91.870 | 87.970 | 81.370 | 87.070 | 5-Fold CV |
 | *Energy-Based Attention* | *89.130* | *88.970* | **87.470** | *88.520* | Tự chia (Custom split) |
 | Baseline nnU-Net v2 nhóm tự train (50 ep) | 92.529 | 89.921 | 79.071 | 87.173 | 5-Fold CV |
 | Evidential nnU-Net (50 ep) | 91.580 | 88.260 | 82.390 | 87.410 | Fixed Test (74 ca) |
+| Baseline nnU-Net v2 nhóm tự train (250 ep) | 91.692 | 89.262 | 83.566 | 88.173 | Fixed Test (74 ca) |
 | Baseline nnU-Net v2 nhóm tự train (250 ep) | 93.768 | 92.222 | 82.473 | **89.488** | 5-Fold CV |
 | **Evidential nnU-Net (Ours - 250 ep)** | 91.948 | 89.588 | 83.974 | 88.503 | **Fixed Test (74 ca)** |
 | **Evidential nnU-Net (Ours - 250 ep)** | **93.633** | **92.003** | 81.254 | 88.963 | **5-Fold CV** |

@@ -158,7 +158,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # --- MỞ KHÓA CHO TẤT CẢ CÁC MODE ---
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'edl_raw', 'baseline', 'baseline_raw', 'edl_250', 'baseline_250_fixed_split', 'edl_250_fixed_split', 'baseline_50_fixed_split', 'edl_50_fixed_split'])
+                        choices=['edl', 'edl_raw', 'baseline', 'baseline_raw', 'edl_250', 'baseline_250', 'baseline_250_fixed_split', 'edl_250_fixed_split', 'baseline_50_fixed_split', 'edl_50_fixed_split'])
     
     parser.add_argument('--limit', type=int, default=0)
 

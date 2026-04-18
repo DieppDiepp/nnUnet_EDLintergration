@@ -19,7 +19,7 @@ from src.visualizer import visualize_comparison
 def parse_args():
     parser = argparse.ArgumentParser(description="Chạy dự đoán cho BraTS EDL/Baseline")
     parser.add_argument('--mode', type=str, default='edl', 
-                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw', 'edl_250', 'edl_250_fixed_split', 'baseline_250_fixed_split', 'edl_50_fixed_split', 'baseline_50_fixed_split'],
+                        choices=['edl', 'baseline', 'edl_raw', 'baseline_raw', 'edl_250', 'baseline_250', 'edl_250_fixed_split', 'baseline_250_fixed_split', 'edl_50_fixed_split', 'baseline_50_fixed_split'],
                         help="Chọn chế độ chạy")
     
     parser.add_argument('--fold', type=int, default=0, help="Fold của trọng số mô hình cần load")

@@ -121,6 +121,15 @@ MODEL_CONFIGS = {
         "tile_step_size": 0.5
     },
 
+    # --- 5. BASELINE 250 EPOCHS Có TTA, trượt 50% ---
+    "baseline_250": {
+        "model_mode": "baseline",
+        "checkpoint_path": "/content/drive/MyDrive/NCKH/nnUnet/data/nnUNet_results/Dataset101_BraTS2020/nnUNetTrainer_250epochs__nnUNetPlans__3d_fullres/fold_{fold}/checkpoint_best.pth",
+        "output_folder":   "/content/drive/MyDrive/NCKH/nnUnet/inference_results/Dataset101_BraTS2020/nnUNetTrainer_250epochs__nnUNetPlans__3d_fullres",
+        "use_mirroring": True,
+        "tile_step_size": 0.5
+    },
+
     # --- 6. EDL 250 EPOCHS Fixed Split ---
     "edl_250_fixed_split": {
         "model_mode": "edl",

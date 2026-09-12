@@ -41,9 +41,9 @@ class EDLInferenceEngine:
             nnunet_path = os.path.dirname(nnunetv2.__file__)
             target_folder = os.path.join(nnunet_path, "training", "nnUNetTrainer")
             
-            # 2. Tìm file source trong thư mục dự án (src/trainers)
+            # 2. Tìm file source trong thư mục dự án (src/trainer)
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            source_file = os.path.join(current_dir, "trainers", "EDLTrainer.py")
+            source_file = os.path.join(current_dir, "trainer", "EDLTrainer.py")
             
             if not os.path.exists(source_file):
                 # print(f"⚠️ Warning: Không tìm thấy file trainer tại {source_file}. Bỏ qua bước inject.")
